@@ -3,5 +3,5 @@
 Go implementation:
 https://github.com/asiffer/netspot
 
-Python version of just the algorithm:
+Python version of the algorithm:
 https://github.com/Amossys-team/SPOT
