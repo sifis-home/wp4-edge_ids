@@ -1,0 +1,878 @@
+openapi: 3.0.0
+info:
+  version: 0.1.0
+  title: Netspot Control API
+  description: >-
+    ## Welcome to Netspot Control API documentation
+
+
+    The API is divided into the following sections:
+
+
+    <table>
+      <tr><th>Section</th><th>Description</th></tr>
+      <tr>
+        <td>Status</td>
+        <td>For controlling netspot services statuses</td>
+      </tr>
+      <tr>
+        <td>Statistics</td>
+        <td>For reading recorded statistics and alarms.</td>
+      </tr>
+      <tr>
+        <td>Configuration</td>
+        <td>For handling netpost configurations.</td>
+      </tr>
+      <tr>
+        <td>Network</td>
+        <td>For providing information about network interfaces in the
+        host system. This information is needed for netspot configuration.</td>
+      </tr>
+      <tr>
+        <td>Webhooks</td>
+        <td>For configuring callbacks for live updates.</td>
+      </tr>
+    </table>
+
+
+    For a quick start, you can check the status of netspot services. A default
+    netspot configuration is provided for new installations and should be
+    running already.
+
+
+    Next, you could try to read statistics. Data statistics contain analysis
+    results, while alarms are for detected anomalies. Please note that the
+    alarms database can be empty and thus return an empty array.
+
+
+    Then you may want to start forwarding live updates to your service using
+    webhooks. Or you can start learning how to configure netspot services or
+    even create new ones for custom purposes.
+servers:
+  - url: 'http://localhost:8000/v1'
+tags:
+  - name: Status
+    description: Controlling netspot services status
+  - name: Statistics
+    description: Read statistics data and alarms
+  - name: Configuration
+    description: Create/edit/delete netspot configurations
+  - name: Network
+    description: Network information
+  - name: Webhooks
+    description: Configure callbacks for statistic updates
+paths:
+  /netspots:
+    get:
+      tags:
+        - Status
+      summary: Status of netspot services
+      description: List netspot configurations and their status
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statuses'
+  /netspots/start:
+    get:
+      tags:
+        - Status
+      summary: Start all netspot services
+      description: Start all netspot configurations
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statuses'
+              example:
+                - id: 1
+                  name: Default configuration
+                  status: running
+                - id: 2
+                  name: Old configuration
+                  status: disabled
+                - id: 3
+                  name: Custom configuration
+                  status: running
+  /netspots/stop:
+    get:
+      tags:
+        - Status
+      summary: Stop all netspot services
+      description: Stop all netspot configurations
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statuses'
+              example:
+                - id: 1
+                  name: Default configuration
+                  status: stopped
+                - id: 2
+                  name: Old configuration
+                  status: disabled
+                - id: 3
+                  name: Custom configuration
+                  status: stopped
+  /netspots/restart:
+    get:
+      tags:
+        - Status
+      summary: Restart all netspot services
+      description: Restart all netspot configurations
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statuses'
+              example:
+                - id: 1
+                  name: Default configuration
+                  status: running
+                - id: 2
+                  name: Old configuration
+                  status: disabled
+                - id: 3
+                  name: Custom configuration
+                  status: running
+  '/netspot/{id}/status':
+    get:
+      tags:
+        - Status
+      summary: Netspot service status
+      description: Status for the netspot configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/NetspotID'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+  '/netspot/{id}/start':
+    get:
+      tags:
+        - Status
+      summary: Start netspot service
+      description: Start netspot configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/NetspotID'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+  '/netspot/{id}/stop':
+    get:
+      tags:
+        - Status
+      summary: Stop netspot service
+      description: Stop netspot configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/NetspotID'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+              example:
+                id: 1
+                name: Default configuration
+                status: stopped
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+  '/netspot/{id}/restart':
+    get:
+      tags:
+        - Status
+      summary: Restart netspot service
+      description: Restart netspot configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/NetspotID'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+  /netspots/data:
+    get:
+      tags:
+        - Statistics
+      summary: Read netspot statistics
+      description: >-
+        Reads recorded nestpot statistics.
+
+
+        You can use parameters to limit which results are returned. Without
+        parameters, only 100 last items are returned.
+      parameters:
+        - $ref: '#/components/parameters/Timestamp'
+        - $ref: '#/components/parameters/Last'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statistics'
+              example:
+                - AVG_PKT_SIZE: 277.3206106870229
+                  AVG_PKT_SIZE_UP: 1426.5284321544912
+                  PERF: 117.51203557163888
+                  R_ACK: 0.5725190839694656
+                  R_ACK_UP: 1.1767897985067772
+                  R_ARP: 0.015037593984962405
+                  R_ARP_UP: 0.9617650518488893
+                  R_SYN: 0.10687022900763359
+                  R_SYN_UP: 0.36892687754648157
+                  TRAFFIC: 0.1157471588667042
+                  TRAFFIC_UP: 0.28140055970312605
+                  name: example
+                  series: 'any-Sep-13-13:25:06.188'
+                  time: 1663067150233482800
+                  type: data
+                - AVG_PKT_SIZE: 852.06875
+                  AVG_PKT_SIZE_UP: 1430.5148443682317
+                  PERF: 644.0490846701175
+                  R_ACK: 0.85
+                  R_ACK_UP: 1.1882401801861664
+                  R_ARP: 0.003115264797507788
+                  R_ARP_UP: 0.9520658037285885
+                  R_SYN: 0.0421875
+                  R_SYN_UP: 0.37416913671033913
+                  TRAFFIC: 0.6420005642803772
+                  TRAFFIC_UP: 0.2836867847672743
+                  name: example
+                  series: 'any-Sep-13-13:25:06.188'
+                  time: 1663067151233832700
+                  type: data
+        '400':
+          $ref: '#/components/responses/InvalidQuery'
+  /netspots/alarms:
+    get:
+      tags:
+        - Statistics
+      summary: Read alarms from netspot statistics
+      description: >-
+        Reads recorded alarms from nestpot statistics.
+
+
+        You can use parameters to limit which results are returned. Without
+        parameters, only 100 last items are returned.
+      parameters:
+        - $ref: '#/components/parameters/Timestamp'
+        - $ref: '#/components/parameters/Last'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statistics'
+              example:
+                - code: 1
+                  name: example
+                  probability: 6.339602700994009e-10
+                  series: 'any-Sep-13-13:25:06.188'
+                  stat: TRAFFIC
+                  status: UP_ALERT
+                  time: 1663067151233832700
+                  type: alarm
+                  value: 0.6420005642803772
+                - code: 1
+                  name: example
+                  probability: 0.000005421116509632959
+                  series: 'any-Sep-13-13:25:06.188'
+                  stat: TRAFFIC
+                  status: UP_ALERT
+                  time: 1663067152233540900
+                  type: alarm
+                  value: 0.3704655238635583
+        '400':
+          $ref: '#/components/responses/InvalidQuery'
+  /netspot:
+    post:
+      tags:
+        - Configuration
+      summary: Create a new netspot configuration
+      description: Lets a user post a new configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Configuration'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                description: ID for the added configuration
+                properties:
+                  id:
+                    type: integer
+                example:
+                  id: 42
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+  '/netspot/{id}':
+    get:
+      tags:
+        - Configuration
+      summary: Get netspot configuration
+      description: Get netspot configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/NetspotID'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Configuration'
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+    put:
+      tags:
+        - Configuration
+      summary: Update an existing netspot configuration
+      description: Get netspot configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/NetspotID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Configuration'
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+    delete:
+      tags:
+        - Configuration
+      summary: Delete netspot configuration
+      description: Delete netspot configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/NetspotID'
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+  /network/interfaces:
+    get:
+      tags:
+        - Network
+      summary: List of network interfaces on the host system
+      description: Returns a list of available network interfaces.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example:
+                  - enp0s31f6
+                  - any
+                  - lo
+                  - wlp147s0
+                  - docker0
+  /netspots/webhooks:
+    get:
+      tags:
+        - Webhooks
+      summary: List installed webhooks
+      description: >-
+        Lists installed webhooks by their id and names. Use ID to query detailed
+        configureation when needed.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      description: Unique ID for webhook
+                      type: integer
+                    name:
+                      description: Name for the webhook
+                      type: string
+                example:
+                  - id: 1
+                    name: 'My example callback #1'
+                  - id: 2
+                    name: 'My example callback #2'
+  /netspots/webhook:
+    post:
+      tags:
+        - Webhooks
+      summary: Create a new webhook
+      description: Let a user post a new webhook configuration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Webhook'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                description: ID for the added configuration
+                properties:
+                  id:
+                    type: integer
+                example:
+                  id: 42
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+  '/netspots/webhook/{id}':
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook configuration
+      description: Get webhook configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/WebhookID'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+    put:
+      tags:
+        - Webhooks
+      summary: Update webhook configuration
+      description: Update webhook configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/WebhookID'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Webhook'
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+    delete:
+      tags:
+        - Webhooks
+      summary: Delete webhook configuration
+      description: delete webhook configuration by ID
+      parameters:
+        - $ref: '#/components/parameters/WebhookID'
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          $ref: '#/components/responses/InvalidID'
+        '404':
+          $ref: '#/components/responses/ConfigNotFound'
+components:
+  parameters:
+    NetspotID:
+      name: id
+      description: Netspot configuration ID
+      in: path
+      required: true
+      schema:
+        type: integer
+    Timestamp:
+      name: time
+      description: >-
+        Unix timestamp in nanoseconds. You can use the last timestamp from the
+        previous request to get only new items.
+      in: query
+      required: false
+      schema:
+        type: integer
+    Last:
+      name: last
+      description: 'Receive only the {last} count of items.'
+      in: query
+      required: false
+      schema:
+        type: integer
+    WebhookID:
+      name: id
+      description: Webhook configuration ID
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    BadRequest:
+      description: Bad request
+    ConfigNotFound:
+      description: Configuration not found
+    InvalidID:
+      description: Invalid ID supplied
+    InvalidInput:
+      description: Invalid input
+    InvalidQuery:
+      description: Invalid query paramters supplied
+  schemas:
+    Configuration:
+      description: >-
+        Netspot configuration options. Only the *configuration name* is
+        required, other options have default values.
+      type: object
+      example:
+        configuration:
+          name: Default configuration
+          device: any
+          promiscuous: true
+          enabled: true
+        spot:
+          depth: 50
+          q: 0.00001
+          n_init: 2000
+          level: 0.98
+          up: true
+          down: false
+          alert: true
+          bounded: true
+          max_excess: 200
+        stats:
+          avg_pkg_size:
+            enabled: true
+            max_excess: 1
+          perf:
+            enabled: true
+            up: false
+          r_arp:
+            enabled: true
+          r_syn:
+            enabled: true
+          traffic:
+            enabled: true
+      required:
+        - configuration
+      properties:
+        configuration:
+          description: Analyzation configugration
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              description: >-
+                Name for the configuration. The name is also displayed in the
+                netspot data and alarm streams with the name tag.
+              type: string
+            device:
+              description: >-
+                Name of the interface to listen, "any" sniffs all the network
+                interfaces.
+              type: string
+              default: any
+            promiscuous:
+              description: >-
+                In promiscuous mode, the network adapter will pass all received
+                network traffic to the central processing unit rather than
+                giving only frames that the controller is specifically
+                programmed to receive. This is useful when the adapter is
+                connected to the "mirror port" on the network switch.
+              type: boolean
+              default: true
+            enabled:
+              description: >-
+                Is this configuration in use? The disabled configuration will
+                show "disabled" as a status and does not start when requested.
+              type: boolean
+              default: true
+        spot:
+          description: >-
+            The default configuration of the SPOT detection algorithm. These
+            settings can be overwritten in stats by giving value for the option
+            with the same name.
+          type: object
+          properties:
+            depth:
+              description: Number of observations to build a local model
+              type: integer
+              default: 50
+            q:
+              description: >-
+                Anomaly probability threshold. Extreme events with probability
+                lower than q will be flagged
+              type: number
+              default: 0.0001
+            n_init:
+              description: Number of initial observations to calibrate SPOT
+              type: integer
+              default: 1000
+            level:
+              description: >-
+                Tail quantile. Extreme events with probability lower than
+                1-level are considered in the tail on the input distribution
+              type: number
+              default: 0.8
+            up:
+              description: Flag upper extreme events
+              type: boolean
+              default: true
+            down:
+              description: Flag lower extreme events
+              type: boolean
+              default: false
+            alert:
+              description: Enable flagging
+              type: boolean
+              default: true
+            bounded:
+              description: >-
+                Enable bounded mode. It limits the number of tail observations
+                for parameter estimation
+              type: boolean
+              default: true
+            max_excess:
+              description: Number of tail observations (*see bounded*).
+              type: integer
+              default: 200
+        stats:
+          description: >-
+            Define here which statistics are computed. <br> Available statistics
+            are: <table>
+                <tr><th>Name</th><th>Description</th></tr>
+                <tr><td>"avg_pkt_size"</td><td>The average size of IP packets</td></tr>
+                <tr><td>"perf"</td><td>The packet parsing rate</td></tr>
+                <tr><td>"r_ack"</td><td>The ratio of packets with TCP + ACK flag</td></tr>
+                <tr><td>"r_arp"</td><td>The ratio of ARP packets</td></tr>
+                <tr><td>"r_dst_src"</td><td>The ratio 'number of unique destination addresses'
+                / 'number of unique source addresses'</td></tr>
+                <tr><td>"r_dst_src_port"</td><td>The ratio 'number of unique destination ports'
+                / 'number of unique source ports'</td></tr>
+                <tr><td>"r_icmp"</td><td>The ratio of ICMP packets</td></tr>
+                <tr><td>"r_ip"</td><td>The ratio of IP packets</td></tr>
+                <tr><td>"r_syn"</td><td>The ratio of packets with TCP + SYN flag</td></tr>
+                <tr><td>"traffic"</td><td>The ratio IP packets / window size</td></tr>
+            </table>
+          type: object
+          properties:
+            avg_pkt_size:
+              $ref: '#/components/schemas/Stats'
+            perf:
+              $ref: '#/components/schemas/Stats'
+            r_ack:
+              $ref: '#/components/schemas/Stats'
+            r_arp:
+              $ref: '#/components/schemas/Stats'
+            r_dst_src:
+              $ref: '#/components/schemas/Stats'
+            r_icmp:
+              $ref: '#/components/schemas/Stats'
+            r_ip:
+              $ref: '#/components/schemas/Stats'
+            r_syn:
+              $ref: '#/components/schemas/Stats'
+            traffic:
+              $ref: '#/components/schemas/Stats'
+    Stats:
+      description: >-
+        Statistics configuration. Enable statistics by setting the `enabled` to
+        `true`. Spot defaults are used for options that are omitted or set to
+        null.
+
+
+        See `spot` for description of options.
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: false
+        depth:
+          type: integer
+          nullable: true
+          default: null
+        q:
+          type: number
+          nullable: true
+          default: null
+        n_init:
+          type: integer
+          nullable: true
+          default: null
+        level:
+          type: number
+          nullable: true
+          default: null
+        up:
+          type: boolean
+          nullable: true
+          default: null
+        down:
+          type: boolean
+          nullable: true
+          default: null
+        alert:
+          type: boolean
+          nullable: true
+          default: null
+        bounded:
+          type: boolean
+          nullable: true
+          default: null
+        max_excess:
+          type: integer
+          nullable: true
+          default: null
+    Statistics:
+      description: Spot analysis statistics
+      type: array
+      items:
+        description: >-
+          The format of the items depends on what statistics are enabled. Only
+          the properties that are always included are listed here.
+        type: object
+        properties:
+          name:
+            description: Name for the configuration
+            type: string
+          time:
+            description: Unix timestamp in nanosecond accuracy
+            type: integer
+          type:
+            description: Item type
+            type: string
+            enum:
+              - data
+              - alarm
+          series:
+            description: Series name
+            type: string
+    Status:
+      description: Netspot service status
+      type: object
+      properties:
+        id:
+          description: Unique netspot configuration ID
+          type: integer
+        name:
+          description: Name for the configuration
+          type: string
+        status:
+          description: Service status
+          type: string
+          enum:
+            - running
+            - stopped
+            - disabled
+      example:
+        id: 1
+        name: Default configuration
+        status: running
+    Statuses:
+      description: An array of multiple netspot services status
+      type: array
+      items:
+        $ref: '#/components/schemas/Status'
+      example:
+        - id: 1
+          name: Default configuration
+          status: running
+        - id: 2
+          name: Old configuration
+          status: disabled
+        - id: 3
+          name: Custom configuration
+          status: stopped
+    Webhook:
+      description: >-
+        Configuration for callback address that is used for sending live updates
+        from netspots. Messages from netspots are delivered using the content of
+        HTTP requests, using the Status scheme.
+      type: object
+      required:
+        - name
+        - address
+      properties:
+        name:
+          type: string
+          description: Name to help identify callbacks from each other
+          example: My example callback
+        address:
+          type: string
+          format: uri
+          example: 'https://myserver.com/send/callback/here'
+        method:
+          description: Which HTTP method is used for callback
+          type: string
+          enum:
+            - GET
+            - PUT
+            - POST
+          default: POST
+        headers:
+          type: object
+          description: Additional parameters for request header
+          example:
+            Authorization: Bearer 2815428e60f2543da992fe513bcc1af8
+        type:
+          description: 'Type of statistics to receive [data, alarms, or both]'
+          type: string
+          enum:
+            - data
+            - alarms
+            - both
+          default: both

@@ -1,0 +1,29 @@
+Network:
+GET     /network/interfaces     : List of available network interfaces
+
+Status:
+GET     /netspots               : List of netspot configuration and their status
+GET     /netspots/start         : Start all netspot configurations
+GET     /netspots/stop          : Stop all netspot configurations
+GET     /netspots/restart       : Restart all netspot configurations
+GET     /netspot/{id}/status    : Status (running/stopped/disabled)
+GET     /netspot/{id}/start     : Start this netspot
+GET     /netspot/{id}/stop      : Stop this netspot
+GET     /netspot/{id}/restart   : Restart this netspot
+
+Configuration:
+POST    /netspot                : Create a new netspot with JSON configuration
+GET     /netspot/{id}           : Configuration JSON for netspot
+PUT     /netspot/{id}           : Update configuration JSON for netspot
+DELETE  /netspot/{id}           : Remove netspot setup
+
+Statistics:
+GET     /netspots/data          : Analytic data
+GET     /netspots/alarms        : Alarm data
+
+Webhooks
+GET     /netspots/webhooks      : List of installed webhooks
+POST    /netspots/webhook       : Create new webhook
+GET     /netspots/webhook/{id}  : Get webhook configuration
+PUT     /netspots/webhook/{id}  : Update webhook configuration
+DELETE  /netspots/webhook/{id}  : Delete webhook configuration
