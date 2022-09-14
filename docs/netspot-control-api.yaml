@@ -867,7 +867,8 @@ components:
           type: object
           description: Additional parameters for request header
           example:
-            Authorization: Bearer 2815428e60f2543da992fe513bcc1af8
+            example-key: example-value
+            another-key: another-value
         type:
           description: 'Type of statistics to receive [data, alarms, or both]'
           type: string
