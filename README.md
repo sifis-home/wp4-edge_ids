@@ -49,9 +49,19 @@ And start it again with:
 docker start netspot_control
 ```
 
-You should be able to connect browser to http://your-docker-host:8000/.
+Server is configured to listen port 80 by default. You should be able to connect with browser to: http://your-docker-host/
 
-If running on local machine try opening: http://localhost:8000/
+If you are running docker on local machine try opening: http://localhost/
+
+For using another port add `--env=ROCKET_PORT=<port number>` to docker run command. For example:
+
+```bash
+docker run --detach --name=netspot_control --cap-add=NET_ADMIN --network=host --env=ROCKET_PORT=3000 netspot_control
+```
+
+## Development
+
+For easier development on the local machine, we recommend you install the netspot on your systems to make it available for the netspot_control application. When you run the netspot_control with `cargo run`, it will use port 8000 by default. You can change the port by using the `ROCKET_PORT` environment variable.
 
 ## Roadmap
 
