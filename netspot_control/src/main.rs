@@ -1,41 +1,50 @@
-use rocket::response::content::RawHtml;
-use rocket::response::Debug;
-use rocket::serde::json::Json;
-use rocket::{get, routes};
+use rocket::fs::{relative, FileServer};
+use rocket_okapi::openapi_get_routes;
+use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 
-type Result<T, E = Debug<pcap::Error>> = std::result::Result<T, E>;
-
-#[get("/")]
-async fn index() -> RawHtml<&'static str> {
-    RawHtml(
-        r#"<!doctype html>
-<html>
-  <head>
-    <title>Test Page</title>
-  </head>
-  <body>
-    <a href="/v1/network/interfaces">Get network interfaces</a>
-  </body>
-</html>"#,
-    )
-}
-
-#[get("/network/interfaces")]
-async fn network_interfaces() -> Result<Json<Vec<String>>> {
-    let mut devices = Vec::new();
-    let device_list = pcap::Device::list()?;
-    for device in device_list {
-        devices.push(device.name)
-    }
-    Ok(Json(devices))
-}
+// HTTP API implementations
+mod network; // Network information
 
 #[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
-    let _rocket = rocket::build()
-        .mount("/", routes![index])
-        .mount("/v1/", routes![network_interfaces])
+async fn main() {
+    // Prepare configuration for API documentation.
+    let rapidoc_config = RapiDocConfig {
+        title: Some("Netspot Control Service | API Documentation".to_string()),
+        general: GeneralConfig {
+            spec_urls: vec![UrlObject::new("General", "../openapi.json")],
+            ..Default::default()
+        },
+        hide_show: HideShowConfig {
+            allow_spec_url_load: false,
+            allow_spec_file_load: false,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let swagger_ui_config = SwaggerUIConfig {
+        url: "../openapi.json".to_owned(),
+        ..Default::default()
+    };
+
+    // Launch server
+    let launch_result = rocket::build()
+        .mount("/", FileServer::from(relative!("static")))
+        .mount("/v1/", openapi_get_routes![network::network_interfaces])
+        // API documentation from the design
+        // Using the openapi.json from the static/design folder
+        .mount("/design/rapidoc/", make_rapidoc(&rapidoc_config))
+        .mount("/design/swagger-ui/", make_swagger_ui(&swagger_ui_config))
+        // API documentation from the implementation
+        .mount("/v1/rapidoc/", make_rapidoc(&rapidoc_config))
+        .mount("/v1/swagger-ui/", make_swagger_ui(&swagger_ui_config))
         .launch()
-        .await?;
-    Ok(())
+        .await;
+
+    // Checking launch result
+    match launch_result {
+        Ok(_) => println!("Rocket shut down gracefully."),
+        Err(err) => println!("Rocket had an error: {}", err),
+    };
 }

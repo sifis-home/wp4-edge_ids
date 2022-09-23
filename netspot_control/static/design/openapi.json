@@ -1,0 +1,1160 @@
+{
+  "openapi" : "3.0.0",
+  "info" : {
+    "description" : "## Welcome to Netspot Control API documentation\n\nThe API is divided into the following sections:\n\n<table>\n  <tr><th>Section</th><th>Description</th></tr>\n  <tr>\n    <td>Status</td>\n    <td>For controlling netspot services statuses</td>\n  </tr>\n  <tr>\n    <td>Statistics</td>\n    <td>For reading recorded statistics and alarms.</td>\n  </tr>\n  <tr>\n    <td>Configuration</td>\n    <td>For handling netpost configurations.</td>\n  </tr>\n  <tr>\n    <td>Network</td>\n    <td>For providing information about network interfaces in the\n    host system. This information is needed for netspot configuration.</td>\n  </tr>\n  <tr>\n    <td>Webhooks</td>\n    <td>For configuring callbacks for live updates.</td>\n  </tr>\n</table>\n\nFor a quick start, you can check the status of netspot services. A default netspot configuration is provided for new installations and should be running already.\n\nNext, you could try to read statistics. Data statistics contain analysis results, while alarms are for detected anomalies. Please note that the alarms database can be empty and thus return an empty array.\n\nThen you may want to start forwarding live updates to your service using webhooks. Or you can start learning how to configure netspot services or even create new ones for custom purposes.",
+    "title" : "Netspot Control API",
+    "version" : "0.1.0"
+  },
+  "servers" : [ {
+    "url" : "http://localhost/v1"
+  } ],
+  "tags" : [ {
+    "description" : "Controlling netspot services status",
+    "name" : "Status"
+  }, {
+    "description" : "Read statistics data and alarms",
+    "name" : "Statistics"
+  }, {
+    "description" : "Create/edit/delete netspot configurations",
+    "name" : "Configuration"
+  }, {
+    "description" : "Network information",
+    "name" : "Network"
+  }, {
+    "description" : "Configure callbacks for statistic updates",
+    "name" : "Webhooks"
+  } ],
+  "paths" : {
+    "/netspots" : {
+      "get" : {
+        "description" : "List netspot configurations and their status",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Statuses"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          }
+        },
+        "summary" : "Status of netspot services",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspots/start" : {
+      "get" : {
+        "description" : "Start all netspot configurations",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : [ {
+                  "id" : 1,
+                  "name" : "Default configuration",
+                  "status" : "running"
+                }, {
+                  "id" : 2,
+                  "name" : "Old configuration",
+                  "status" : "disabled"
+                }, {
+                  "id" : 3,
+                  "name" : "Custom configuration",
+                  "status" : "running"
+                } ],
+                "schema" : {
+                  "$ref" : "#/components/schemas/Statuses"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          }
+        },
+        "summary" : "Start all netspot services",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspots/stop" : {
+      "get" : {
+        "description" : "Stop all netspot configurations",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : [ {
+                  "id" : 1,
+                  "name" : "Default configuration",
+                  "status" : "stopped"
+                }, {
+                  "id" : 2,
+                  "name" : "Old configuration",
+                  "status" : "disabled"
+                }, {
+                  "id" : 3,
+                  "name" : "Custom configuration",
+                  "status" : "stopped"
+                } ],
+                "schema" : {
+                  "$ref" : "#/components/schemas/Statuses"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          }
+        },
+        "summary" : "Stop all netspot services",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspots/restart" : {
+      "get" : {
+        "description" : "Restart all netspot configurations",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : [ {
+                  "id" : 1,
+                  "name" : "Default configuration",
+                  "status" : "running"
+                }, {
+                  "id" : 2,
+                  "name" : "Old configuration",
+                  "status" : "disabled"
+                }, {
+                  "id" : 3,
+                  "name" : "Custom configuration",
+                  "status" : "running"
+                } ],
+                "schema" : {
+                  "$ref" : "#/components/schemas/Statuses"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          }
+        },
+        "summary" : "Restart all netspot services",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspot/{id}/status" : {
+      "get" : {
+        "description" : "Status for the netspot configuration by ID",
+        "parameters" : [ {
+          "description" : "Netspot configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Status"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Netspot service status",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspot/{id}/start" : {
+      "get" : {
+        "description" : "Start netspot configuration by ID",
+        "parameters" : [ {
+          "description" : "Netspot configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Status"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Start netspot service",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspot/{id}/stop" : {
+      "get" : {
+        "description" : "Stop netspot configuration by ID",
+        "parameters" : [ {
+          "description" : "Netspot configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "id" : 1,
+                  "name" : "Default configuration",
+                  "status" : "stopped"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/Status"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Stop netspot service",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspot/{id}/restart" : {
+      "get" : {
+        "description" : "Restart netspot configuration by ID",
+        "parameters" : [ {
+          "description" : "Netspot configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Status"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Restart netspot service",
+        "tags" : [ "Status" ]
+      }
+    },
+    "/netspots/data" : {
+      "get" : {
+        "description" : "Reads recorded nestpot statistics.\n\nYou can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
+        "parameters" : [ {
+          "description" : "Unix timestamp in nanoseconds. You can use the last timestamp from the previous request to get only new items.",
+          "explode" : true,
+          "in" : "query",
+          "name" : "time",
+          "required" : false,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Receive only the {last} count of items.",
+          "explode" : true,
+          "in" : "query",
+          "name" : "last",
+          "required" : false,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : [ {
+                  "AVG_PKT_SIZE" : 277.3206106870229,
+                  "AVG_PKT_SIZE_UP" : 1426.5284321544912,
+                  "PERF" : 117.51203557163888,
+                  "R_ACK" : 0.5725190839694656,
+                  "R_ACK_UP" : 1.1767897985067772,
+                  "R_ARP" : 0.015037593984962405,
+                  "R_ARP_UP" : 0.9617650518488893,
+                  "R_SYN" : 0.10687022900763359,
+                  "R_SYN_UP" : 0.36892687754648157,
+                  "TRAFFIC" : 0.1157471588667042,
+                  "TRAFFIC_UP" : 0.28140055970312605,
+                  "name" : "example",
+                  "series" : "any-Sep-13-13:25:06.188",
+                  "time" : 1663067150233482800,
+                  "type" : "data"
+                }, {
+                  "AVG_PKT_SIZE" : 852.06875,
+                  "AVG_PKT_SIZE_UP" : 1430.5148443682317,
+                  "PERF" : 644.0490846701175,
+                  "R_ACK" : 0.85,
+                  "R_ACK_UP" : 1.1882401801861664,
+                  "R_ARP" : 0.003115264797507788,
+                  "R_ARP_UP" : 0.9520658037285885,
+                  "R_SYN" : 0.0421875,
+                  "R_SYN_UP" : 0.37416913671033913,
+                  "TRAFFIC" : 0.6420005642803772,
+                  "TRAFFIC_UP" : 0.2836867847672743,
+                  "name" : "example",
+                  "series" : "any-Sep-13-13:25:06.188",
+                  "time" : 1663067151233832700,
+                  "type" : "data"
+                } ],
+                "schema" : {
+                  "$ref" : "#/components/schemas/Statistics"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid query paramters supplied"
+          }
+        },
+        "summary" : "Read netspot statistics",
+        "tags" : [ "Statistics" ]
+      }
+    },
+    "/netspots/alarms" : {
+      "get" : {
+        "description" : "Reads recorded alarms from nestpot statistics.\n\nYou can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
+        "parameters" : [ {
+          "description" : "Unix timestamp in nanoseconds. You can use the last timestamp from the previous request to get only new items.",
+          "explode" : true,
+          "in" : "query",
+          "name" : "time",
+          "required" : false,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "form"
+        }, {
+          "description" : "Receive only the {last} count of items.",
+          "explode" : true,
+          "in" : "query",
+          "name" : "last",
+          "required" : false,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "form"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : [ {
+                  "code" : 1,
+                  "name" : "example",
+                  "probability" : 6.339602700994009E-10,
+                  "series" : "any-Sep-13-13:25:06.188",
+                  "stat" : "TRAFFIC",
+                  "status" : "UP_ALERT",
+                  "time" : 1663067151233832700,
+                  "type" : "alarm",
+                  "value" : 0.6420005642803772
+                }, {
+                  "code" : 1,
+                  "name" : "example",
+                  "probability" : 5.421116509632959E-6,
+                  "series" : "any-Sep-13-13:25:06.188",
+                  "stat" : "TRAFFIC",
+                  "status" : "UP_ALERT",
+                  "time" : 1663067152233540900,
+                  "type" : "alarm",
+                  "value" : 0.3704655238635583
+                } ],
+                "schema" : {
+                  "$ref" : "#/components/schemas/Statistics"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid query paramters supplied"
+          }
+        },
+        "summary" : "Read alarms from netspot statistics",
+        "tags" : [ "Statistics" ]
+      }
+    },
+    "/netspot" : {
+      "post" : {
+        "description" : "Lets a user post a new configuration",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Configuration"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/_netspot_post_201_response"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "400" : {
+            "description" : "Invalid input"
+          }
+        },
+        "summary" : "Create a new netspot configuration",
+        "tags" : [ "Configuration" ]
+      }
+    },
+    "/netspot/{id}" : {
+      "delete" : {
+        "description" : "Delete netspot configuration by ID",
+        "parameters" : [ {
+          "description" : "Netspot configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Delete netspot configuration",
+        "tags" : [ "Configuration" ]
+      },
+      "get" : {
+        "description" : "Get netspot configuration by ID",
+        "parameters" : [ {
+          "description" : "Netspot configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Configuration"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Get netspot configuration",
+        "tags" : [ "Configuration" ]
+      },
+      "put" : {
+        "description" : "Get netspot configuration by ID",
+        "parameters" : [ {
+          "description" : "Netspot configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Configuration"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Update an existing netspot configuration",
+        "tags" : [ "Configuration" ]
+      }
+    },
+    "/network/interfaces" : {
+      "get" : {
+        "description" : "Returns a list of available network interfaces.",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "example" : [ "enp0s31f6", "any", "lo", "wlp147s0", "docker0" ],
+                  "items" : {
+                    "type" : "string"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          }
+        },
+        "summary" : "List of network interfaces on the host system",
+        "tags" : [ "Network" ]
+      }
+    },
+    "/netspots/webhooks" : {
+      "get" : {
+        "description" : "Lists installed webhooks by their id and names. Use ID to query detailed configureation when needed.",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "example" : [ {
+                    "id" : 1,
+                    "name" : "My example callback #1"
+                  }, {
+                    "id" : 2,
+                    "name" : "My example callback #2"
+                  } ],
+                  "items" : {
+                    "$ref" : "#/components/schemas/_netspots_webhooks_get_200_response_inner"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          }
+        },
+        "summary" : "List installed webhooks",
+        "tags" : [ "Webhooks" ]
+      }
+    },
+    "/netspots/webhook" : {
+      "post" : {
+        "description" : "Let a user post a new webhook configuration",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Webhook"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/_netspot_post_201_response"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid input"
+          }
+        },
+        "summary" : "Create a new webhook",
+        "tags" : [ "Webhooks" ]
+      }
+    },
+    "/netspots/webhook/{id}" : {
+      "delete" : {
+        "description" : "delete webhook configuration by ID",
+        "parameters" : [ {
+          "description" : "Webhook configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Delete webhook configuration",
+        "tags" : [ "Webhooks" ]
+      },
+      "get" : {
+        "description" : "Get webhook configuration by ID",
+        "parameters" : [ {
+          "description" : "Webhook configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Webhook"
+                }
+              }
+            },
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Get webhook configuration",
+        "tags" : [ "Webhooks" ]
+      },
+      "put" : {
+        "description" : "Update webhook configuration by ID",
+        "parameters" : [ {
+          "description" : "Webhook configuration ID",
+          "explode" : false,
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          },
+          "style" : "simple"
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Webhook"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Successful operation"
+          },
+          "400" : {
+            "description" : "Invalid ID supplied"
+          },
+          "404" : {
+            "description" : "Configuration not found"
+          }
+        },
+        "summary" : "Update webhook configuration",
+        "tags" : [ "Webhooks" ]
+      }
+    }
+  },
+  "components" : {
+    "parameters" : {
+      "NetspotID" : {
+        "description" : "Netspot configuration ID",
+        "explode" : false,
+        "in" : "path",
+        "name" : "id",
+        "required" : true,
+        "schema" : {
+          "type" : "integer"
+        },
+        "style" : "simple"
+      },
+      "Timestamp" : {
+        "description" : "Unix timestamp in nanoseconds. You can use the last timestamp from the previous request to get only new items.",
+        "explode" : true,
+        "in" : "query",
+        "name" : "time",
+        "required" : false,
+        "schema" : {
+          "type" : "integer"
+        },
+        "style" : "form"
+      },
+      "Last" : {
+        "description" : "Receive only the {last} count of items.",
+        "explode" : true,
+        "in" : "query",
+        "name" : "last",
+        "required" : false,
+        "schema" : {
+          "type" : "integer"
+        },
+        "style" : "form"
+      },
+      "WebhookID" : {
+        "description" : "Webhook configuration ID",
+        "explode" : false,
+        "in" : "path",
+        "name" : "id",
+        "required" : true,
+        "schema" : {
+          "type" : "integer"
+        },
+        "style" : "simple"
+      }
+    },
+    "responses" : {
+      "BadRequest" : {
+        "description" : "Bad request"
+      },
+      "ConfigNotFound" : {
+        "description" : "Configuration not found"
+      },
+      "InvalidID" : {
+        "description" : "Invalid ID supplied"
+      },
+      "InvalidInput" : {
+        "description" : "Invalid input"
+      },
+      "InvalidQuery" : {
+        "description" : "Invalid query paramters supplied"
+      }
+    },
+    "schemas" : {
+      "Configuration" : {
+        "description" : "Netspot configuration options. Only the *configuration name* is required, other options have default values.",
+        "example" : {
+          "configuration" : {
+            "name" : "Default configuration",
+            "device" : "any",
+            "promiscuous" : true,
+            "enabled" : true
+          },
+          "spot" : {
+            "depth" : 50,
+            "q" : 1.0E-5,
+            "n_init" : 2000,
+            "level" : 0.98,
+            "up" : true,
+            "down" : false,
+            "alert" : true,
+            "bounded" : true,
+            "max_excess" : 200
+          },
+          "stats" : {
+            "avg_pkg_size" : {
+              "enabled" : true,
+              "max_excess" : 1
+            },
+            "perf" : {
+              "enabled" : true,
+              "up" : false
+            },
+            "r_arp" : {
+              "enabled" : true
+            },
+            "r_syn" : {
+              "enabled" : true
+            },
+            "traffic" : {
+              "enabled" : true
+            }
+          }
+        },
+        "properties" : {
+          "configuration" : {
+            "$ref" : "#/components/schemas/Configuration_configuration"
+          },
+          "spot" : {
+            "$ref" : "#/components/schemas/Configuration_spot"
+          },
+          "stats" : {
+            "$ref" : "#/components/schemas/Configuration_stats"
+          }
+        },
+        "required" : [ "configuration" ],
+        "type" : "object"
+      },
+      "Stats" : {
+        "description" : "Statistics configuration. Enable statistics by setting the `enabled` to `true`. Spot defaults are used for options that are omitted or set to null.\n\nSee `spot` for description of options.",
+        "properties" : {
+          "enabled" : {
+            "default" : false,
+            "type" : "boolean"
+          },
+          "depth" : {
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "q" : {
+            "nullable" : true,
+            "type" : "number"
+          },
+          "n_init" : {
+            "nullable" : true,
+            "type" : "integer"
+          },
+          "level" : {
+            "nullable" : true,
+            "type" : "number"
+          },
+          "up" : {
+            "nullable" : true,
+            "type" : "boolean"
+          },
+          "down" : {
+            "nullable" : true,
+            "type" : "boolean"
+          },
+          "alert" : {
+            "nullable" : true,
+            "type" : "boolean"
+          },
+          "bounded" : {
+            "nullable" : true,
+            "type" : "boolean"
+          },
+          "max_excess" : {
+            "nullable" : true,
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "Statistics" : {
+        "description" : "Spot analysis statistics",
+        "items" : {
+          "$ref" : "#/components/schemas/Statistics_inner"
+        },
+        "type" : "array"
+      },
+      "Status" : {
+        "description" : "Netspot service status",
+        "example" : {
+          "id" : 1,
+          "name" : "Default configuration",
+          "status" : "running"
+        },
+        "properties" : {
+          "id" : {
+            "description" : "Unique netspot configuration ID",
+            "type" : "integer"
+          },
+          "name" : {
+            "description" : "Name for the configuration",
+            "type" : "string"
+          },
+          "status" : {
+            "description" : "Service status",
+            "enum" : [ "running", "stopped", "disabled" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Statuses" : {
+        "description" : "An array of multiple netspot services status",
+        "example" : [ {
+          "id" : 1,
+          "name" : "Default configuration",
+          "status" : "running"
+        }, {
+          "id" : 2,
+          "name" : "Old configuration",
+          "status" : "disabled"
+        }, {
+          "id" : 3,
+          "name" : "Custom configuration",
+          "status" : "stopped"
+        } ],
+        "items" : {
+          "$ref" : "#/components/schemas/Status"
+        },
+        "type" : "array"
+      },
+      "Webhook" : {
+        "description" : "Configuration for callback address that is used for sending live updates from netspots. Messages from netspots are delivered using the content of HTTP requests, using the Status scheme.",
+        "properties" : {
+          "name" : {
+            "description" : "Name to help identify callbacks from each other",
+            "example" : "My example callback",
+            "type" : "string"
+          },
+          "address" : {
+            "example" : "https://myserver.com/send/callback/here",
+            "format" : "uri",
+            "type" : "string"
+          },
+          "method" : {
+            "default" : "POST",
+            "description" : "Which HTTP method is used for callback",
+            "enum" : [ "GET", "PUT", "POST" ],
+            "type" : "string"
+          },
+          "headers" : {
+            "description" : "Additional parameters for request header",
+            "example" : {
+              "example-key" : "example-value",
+              "another-key" : "another-value"
+            },
+            "type" : "object"
+          },
+          "type" : {
+            "default" : "both",
+            "description" : "Type of statistics to receive [data, alarms, or both]",
+            "enum" : [ "data", "alarms", "both" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "address", "name" ],
+        "type" : "object"
+      },
+      "_netspot_post_201_response" : {
+        "description" : "ID for the added configuration",
+        "example" : {
+          "id" : 42
+        },
+        "properties" : {
+          "id" : {
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "_netspots_webhooks_get_200_response_inner" : {
+        "properties" : {
+          "id" : {
+            "description" : "Unique ID for webhook",
+            "type" : "integer"
+          },
+          "name" : {
+            "description" : "Name for the webhook",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Configuration_configuration" : {
+        "description" : "Analyzation configugration",
+        "properties" : {
+          "name" : {
+            "description" : "Name for the configuration. The name is also displayed in the netspot data and alarm streams with the name tag.",
+            "type" : "string"
+          },
+          "device" : {
+            "default" : "any",
+            "description" : "Name of the interface to listen, \"any\" sniffs all the network interfaces.",
+            "type" : "string"
+          },
+          "promiscuous" : {
+            "default" : true,
+            "description" : "In promiscuous mode, the network adapter will pass all received network traffic to the central processing unit rather than giving only frames that the controller is specifically programmed to receive. This is useful when the adapter is connected to the \"mirror port\" on the network switch.",
+            "type" : "boolean"
+          },
+          "enabled" : {
+            "default" : true,
+            "description" : "Is this configuration in use? The disabled configuration will show \"disabled\" as a status and does not start when requested.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
+      "Configuration_spot" : {
+        "description" : "The default configuration of the SPOT detection algorithm. These settings can be overwritten in stats by giving value for the option with the same name.",
+        "properties" : {
+          "depth" : {
+            "default" : 50,
+            "description" : "Number of observations to build a local model",
+            "type" : "integer"
+          },
+          "q" : {
+            "default" : 0.00010,
+            "description" : "Anomaly probability threshold. Extreme events with probability lower than q will be flagged",
+            "type" : "number"
+          },
+          "n_init" : {
+            "default" : 1000,
+            "description" : "Number of initial observations to calibrate SPOT",
+            "type" : "integer"
+          },
+          "level" : {
+            "default" : 0.8,
+            "description" : "Tail quantile. Extreme events with probability lower than 1-level are considered in the tail on the input distribution",
+            "type" : "number"
+          },
+          "up" : {
+            "default" : true,
+            "description" : "Flag upper extreme events",
+            "type" : "boolean"
+          },
+          "down" : {
+            "default" : false,
+            "description" : "Flag lower extreme events",
+            "type" : "boolean"
+          },
+          "alert" : {
+            "default" : true,
+            "description" : "Enable flagging",
+            "type" : "boolean"
+          },
+          "bounded" : {
+            "default" : true,
+            "description" : "Enable bounded mode. It limits the number of tail observations for parameter estimation",
+            "type" : "boolean"
+          },
+          "max_excess" : {
+            "default" : 200,
+            "description" : "Number of tail observations (*see bounded*).",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "Configuration_stats" : {
+        "description" : "Define here which statistics are computed. <br> Available statistics are: <table>\n    <tr><th>Name</th><th>Description</th></tr>\n    <tr><td>\"avg_pkt_size\"</td><td>The average size of IP packets</td></tr>\n    <tr><td>\"perf\"</td><td>The packet parsing rate</td></tr>\n    <tr><td>\"r_ack\"</td><td>The ratio of packets with TCP + ACK flag</td></tr>\n    <tr><td>\"r_arp\"</td><td>The ratio of ARP packets</td></tr>\n    <tr><td>\"r_dst_src\"</td><td>The ratio 'number of unique destination addresses'\n    / 'number of unique source addresses'</td></tr>\n    <tr><td>\"r_dst_src_port\"</td><td>The ratio 'number of unique destination ports'\n    / 'number of unique source ports'</td></tr>\n    <tr><td>\"r_icmp\"</td><td>The ratio of ICMP packets</td></tr>\n    <tr><td>\"r_ip\"</td><td>The ratio of IP packets</td></tr>\n    <tr><td>\"r_syn\"</td><td>The ratio of packets with TCP + SYN flag</td></tr>\n    <tr><td>\"traffic\"</td><td>The ratio IP packets / window size</td></tr>\n</table>",
+        "properties" : {
+          "avg_pkt_size" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "perf" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "r_ack" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "r_arp" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "r_dst_src" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "r_icmp" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "r_ip" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "r_syn" : {
+            "$ref" : "#/components/schemas/Stats"
+          },
+          "traffic" : {
+            "$ref" : "#/components/schemas/Stats"
+          }
+        },
+        "type" : "object"
+      },
+      "Statistics_inner" : {
+        "description" : "The format of the items depends on what statistics are enabled. Only the properties that are always included are listed here.",
+        "properties" : {
+          "name" : {
+            "description" : "Name for the configuration",
+            "type" : "string"
+          },
+          "time" : {
+            "description" : "Unix timestamp in nanosecond accuracy",
+            "type" : "integer"
+          },
+          "type" : {
+            "description" : "Item type",
+            "enum" : [ "data", "alarm" ],
+            "type" : "string"
+          },
+          "series" : {
+            "description" : "Series name",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    }
+  }
+}

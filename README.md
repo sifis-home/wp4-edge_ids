@@ -63,26 +63,20 @@ docker run --detach --name=netspot_control --cap-add=NET_ADMIN --network=host --
 
 For easier development on the local machine, we recommend you install the netspot on your systems to make it available for the netspot_control application. When you run the netspot_control with `cargo run`, it will use port 8000 by default. You can change the port by using the `ROCKET_PORT` environment variable.
 
-## Roadmap
+## TODO
 
 - [x] OpenAPI specification for the service
-  - [x] Version 0.1.0 done — [html](docs/netspot-control-api.html) | [yaml](docs/netspot-control-api.yaml)
-- [x] Checking for required technologies – The plan is to use Rust if possible
-  - [x] Listing available network interfaces
-  - [x] Unix sockets research
-  - [x] Controlling netspot processes
-    - [x] Graceful shutdown with SIGINT
-  - [x] Cache database
-  - [x] Running test server in docker and checking host interfaces
-- [x] Dockerfile (Initial version, expecting changes)
+  - [x] Version 0.1.0 done — [html](docs/netspot-control-api.html) | [yaml](docs/netspot-control-api.yaml) | [json](netspot_control/static/design/openapi.json)
+  - [x] Available from the `netspot_control` service itself
+- [x] Checking for required technologies
+- [x] Dockerfile
 - [ ] Writing `netspot_control` application:
-  - [ ] Netspot manager
+  - [ ] Design of program parts and interactions
   - [ ] Writing implementation to match the designed OpenAPI specification
-    - [ ] Using `rocket_okapi` could provide OpenAPI generated from the implementation
+  - [x] Using `rocket_okapi` could provide OpenAPI generated from the implementation
   - [ ] CORS ?
   - [ ] Authorization ?
 - [ ] WP2 Checklist
   - [ ] GitHub Action
     - [ ] Code coverage
     - [ ] Continous delivery
-  - [ ] Dockerfile
