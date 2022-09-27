@@ -4,6 +4,9 @@ use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDoc
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 
+// Program modules
+mod configurations;
+
 // HTTP API implementations
 mod network; // Network information
 
