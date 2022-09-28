@@ -594,7 +594,7 @@ components:
           bounded: true
           max_excess: 200
         stats:
-          avg_pkg_size:
+          avg_pkt_size:
             enabled: true
             max_excess: 1
           perf:

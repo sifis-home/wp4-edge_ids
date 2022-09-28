@@ -26,6 +26,44 @@ pub struct StatConfig {
     pub max_excess: Option<u32>,
 }
 
+impl StatConfig {
+    pub fn make_toml(&self) -> String {
+        let mut output = String::new();
+        // We give output only for enabled stats
+        if !self.enabled {
+            return output;
+        }
+        if let Some(value) = self.depth {
+            output.push_str(format!("depth = {}\n", value).as_str());
+        };
+        if let Some(value) = self.q {
+            output.push_str(format!("q = {}\n", value).as_str());
+        };
+        if let Some(value) = self.n_init {
+            output.push_str(format!("n_init = {}\n", value).as_str());
+        };
+        if let Some(value) = self.level {
+            output.push_str(format!("level = {}\n", value).as_str());
+        };
+        if let Some(value) = self.up {
+            output.push_str(format!("up = {}\n", value).as_str());
+        };
+        if let Some(value) = self.down {
+            output.push_str(format!("down = {}\n", value).as_str());
+        };
+        if let Some(value) = self.alert {
+            output.push_str(format!("alert = {}\n", value).as_str());
+        };
+        if let Some(value) = self.bounded {
+            output.push_str(format!("bounded = {}\n", value).as_str());
+        };
+        if let Some(value) = self.max_excess {
+            output.push_str(format!("max_excess = {}\n", value).as_str());
+        };
+        output
+    }
+}
+
 // Default values
 //--------------------------------------------------------------------------------------------------
 
@@ -67,6 +105,9 @@ mod tests {
         assert_eq!(None, config.alert);
         assert_eq!(None, config.bounded);
         assert_eq!(None, config.max_excess);
+
+        // TOML output should be empty
+        assert!(config.make_toml().is_empty());
     }
 
     #[test]
@@ -76,9 +117,9 @@ mod tests {
             r#"{
         "enabled": true,
         "depth": 1,
-        "q": 2.0,
+        "q": 2.2,
         "n_init": 3,
-        "level": 4.0,
+        "level": 4.4,
         "up": false,
         "down": true,
         "alert": false,
@@ -89,13 +130,25 @@ mod tests {
         .unwrap();
         assert_eq!(true, config.enabled);
         assert_eq!(Some(1), config.depth);
-        assert_eq!(Some(2.0), config.q);
+        assert_eq!(Some(2.2), config.q);
         assert_eq!(Some(3), config.n_init);
-        assert_eq!(Some(4.0), config.level);
+        assert_eq!(Some(4.4), config.level);
         assert_eq!(Some(false), config.up);
         assert_eq!(Some(true), config.down);
         assert_eq!(Some(false), config.alert);
         assert_eq!(Some(false), config.bounded);
         assert_eq!(Some(5), config.max_excess);
+
+        // Checking also TOML output
+        let expected = "depth = 1\n\
+        q = 2.2\n\
+        n_init = 3\n\
+        level = 4.4\n\
+        up = false\n\
+        down = true\n\
+        alert = false\n\
+        bounded = false\n\
+        max_excess = 5\n";
+        assert_eq!(config.make_toml(), expected)
     }
 }
