@@ -1,8 +1,9 @@
+use rocket_okapi::okapi::schemars;
 use serde::{Deserialize, Serialize};
 
 // Stat is configuration for named stats
 //--------------------------------------------------------------------------------------------------
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct StatConfig {
     #[serde(default)]
     pub enabled: bool,

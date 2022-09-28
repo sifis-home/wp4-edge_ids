@@ -737,6 +737,7 @@ components:
 
         See `spot` for description of options.
       type: object
+      nullable: true
       properties:
         enabled:
           type: boolean

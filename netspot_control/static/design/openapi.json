@@ -865,6 +865,7 @@
       },
       "Stats" : {
         "description" : "Statistics configuration. Enable statistics by setting the `enabled` to `true`. Spot defaults are used for options that are omitted or set to null.\n\nSee `spot` for description of options.",
+        "nullable" : true,
         "properties" : {
           "enabled" : {
             "default" : false,

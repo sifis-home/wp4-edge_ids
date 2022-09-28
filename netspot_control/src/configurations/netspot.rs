@@ -2,12 +2,51 @@ pub mod miner;
 pub mod spot;
 pub mod stats;
 
+use rocket_okapi::okapi::schemars;
 use serde::{Deserialize, Serialize};
+
+// Default configuration JSON
+//--------------------------------------------------------------------------------------------------
+pub const DEFAULT_NETSPOT_CONFIG_JSON: &str = r#"{
+	"configuration": {
+		"name": "Default configuration"
+	},
+	"spot": {
+		"depth": 50,
+		"q": 0.00001,
+		"n_init": 2000,
+		"level": 0.98,
+		"up": true,
+		"down": false,
+		"alert": true,
+		"bounded": true,
+		"max_excess": 200
+	},
+	"stats": {
+		"avg_pkt_size": {
+			"enabled": true,
+			"max_excess": 1
+		},
+		"perf": {
+			"enabled": true,
+			"up": false
+		},
+		"r_arp": {
+			"enabled": true
+		},
+		"r_syn": {
+			"enabled": true
+		},
+		"traffic": {
+			"enabled": true
+		}
+	}
+}"#;
 
 // NetspotConfig is used to generate config file for netspot process
 //--------------------------------------------------------------------------------------------------
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct NetspotConfig {
     pub configuration: miner::MinerConfig,
     #[serde(default)]
@@ -80,6 +119,12 @@ max_excess = {}
     }
 }
 
+impl Default for NetspotConfig {
+    fn default() -> Self {
+        serde_json::from_str(DEFAULT_NETSPOT_CONFIG_JSON).unwrap()
+    }
+}
+
 // Unit tests
 //--------------------------------------------------------------------------------------------------
 
@@ -87,46 +132,10 @@ max_excess = {}
 mod tests {
     use super::*;
 
-    const DEFAULT_CONFIG_JSON: &str = r#"{
-	"configuration": {
-		"name": "Default configuration"
-	},
-	"spot": {
-		"depth": 50,
-		"q": 0.00001,
-		"n_init": 2000,
-		"level": 0.98,
-		"up": true,
-		"down": false,
-		"alert": true,
-		"bounded": true,
-		"max_excess": 200
-	},
-	"stats": {
-		"avg_pkt_size": {
-			"enabled": true,
-			"max_excess": 1
-		},
-		"perf": {
-			"enabled": true,
-			"up": false
-		},
-		"r_arp": {
-			"enabled": true
-		},
-		"r_syn": {
-			"enabled": true
-		},
-		"traffic": {
-			"enabled": true
-		}
-	}
-}"#;
-
     #[test]
     fn default_configuration() {
         // We should be able to deserialize default configuration from JSON
-        let config: NetspotConfig = serde_json::from_str(DEFAULT_CONFIG_JSON).unwrap();
+        let config: NetspotConfig = serde_json::from_str(DEFAULT_NETSPOT_CONFIG_JSON).unwrap();
 
         // MinerConfig
         assert_eq!("Default configuration", config.configuration.name);
@@ -265,7 +274,7 @@ max_excess = 1
 [spot.PERF]
 up = false
 "#;
-        let config: NetspotConfig = serde_json::from_str(DEFAULT_CONFIG_JSON).unwrap();
+        let config: NetspotConfig = serde_json::from_str(DEFAULT_NETSPOT_CONFIG_JSON).unwrap();
         assert_eq!(config.make_toml(), expected);
     }
 }

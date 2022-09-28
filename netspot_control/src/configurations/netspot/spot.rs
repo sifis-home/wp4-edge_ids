@@ -1,8 +1,9 @@
+use rocket_okapi::okapi::schemars;
 use serde::{Deserialize, Serialize};
 
 // SpotConfig is the 'spot' of the NetspotConfig
 //--------------------------------------------------------------------------------------------------
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct SpotConfig {
     #[serde(default = "spot_default_depth")]
     pub depth: i32,

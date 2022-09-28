@@ -1,14 +1,11 @@
 use rocket::fs::{relative, FileServer};
-use rocket_okapi::openapi_get_routes;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 
 // Program modules
+mod api_v1;
 mod configurations;
-
-// HTTP API implementations
-mod network; // Network information
 
 #[rocket::main]
 async fn main() {
@@ -34,7 +31,7 @@ async fn main() {
     // Launch server
     let launch_result = rocket::build()
         .mount("/", FileServer::from(relative!("static")))
-        .mount("/v1/", openapi_get_routes![network::network_interfaces])
+        .mount("/v1/", api_v1::routes())
         // API documentation from the design
         // Using the openapi.json from the static/design folder
         .mount("/design/rapidoc/", make_rapidoc(&rapidoc_config))

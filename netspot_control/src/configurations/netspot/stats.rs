@@ -1,10 +1,11 @@
 pub mod stat;
 
+use rocket_okapi::okapi::schemars;
 use serde::{Deserialize, Serialize};
 
 // Stats contains which statistics are calculated. All stats are optional.
 //--------------------------------------------------------------------------------------------------
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct StatsConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avg_pkt_size: Option<stat::StatConfig>,
