@@ -1,7 +1,7 @@
 use rocket::get;
 use rocket::response::Debug;
 use rocket::serde::json::Json;
-use rocket_okapi::{openapi, openapi_get_routes};
+use rocket_okapi::openapi;
 
 pub type Result<T, E = Debug<pcap::Error>> = std::result::Result<T, E>;
 
@@ -17,8 +17,4 @@ pub async fn interfaces() -> Result<Json<Vec<String>>> {
         devices.push(device.name)
     }
     Ok(Json(devices))
-}
-
-pub fn routes() -> Vec<rocket::Route> {
-    openapi_get_routes![interfaces]
 }

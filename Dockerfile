@@ -51,16 +51,21 @@ RUN cargo build --release
 
 FROM debian:bullseye-slim
 
-# Default Rocket server setting
-ENV ROCKET_ADDRESS=0.0.0.0
-ENV ROCKET_PORT=80
-
 # Install required packages
-ARG PACKAGES="libpcap0.8"
+ARG PACKAGES="libpcap0.8 libsqlite3-0"
 RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y $PACKAGES && rm -rf /var/lib/apt/lists/*
 COPY --from=GO-BUILDER /usr/bin/netspot /usr/bin/netspot
 COPY --from=RUST-BUILDER /opt/netspot_control/target/release/netspot_control /usr/bin/netspot_control
 COPY netspot_control/static /opt/netspot_control/static
+
+# Default Rocket server setting
+ENV ROCKET_ADDRESS=0.0.0.0
+ENV ROCKET_PORT=80
+
+# Where to store cache and configuration database
+ENV DB_FILE_PATH=/var/lib/netspot_control/netspot_control.db
+
+# Start server
 CMD ["netspot_control"]
 
 # Making the final image
