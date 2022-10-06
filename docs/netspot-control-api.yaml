@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 0.1.0
+  version: 0.1.1
   title: Netspot Control API
   description: >-
     ## Welcome to Netspot Control API documentation
@@ -335,16 +335,6 @@ paths:
       responses:
         '201':
           description: Created
-          content:
-            application/json:
-              schema:
-                type: object
-                description: ID for the added configuration
-                properties:
-                  id:
-                    type: integer
-                example:
-                  id: 42
         '400':
           $ref: '#/components/responses/InvalidInput'
   '/netspot/{id}':

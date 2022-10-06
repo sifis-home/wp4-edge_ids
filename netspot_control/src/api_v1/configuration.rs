@@ -1,16 +1,32 @@
 use crate::configurations::netspot::NetspotConfig;
+use crate::state::database::DatabaseError;
 use crate::NetspotControl;
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::{get, State};
+use rocket::{delete, get, post, put, State};
 use rocket_okapi::openapi;
+
+/// # Create a new netspot configuration
+///
+/// Lets a user post a new configuration
+#[openapi(tag = "Configuration")]
+#[post("/netspot", data = "<new_config>")]
+pub async fn netspot_add(
+    state: &State<NetspotControl>,
+    new_config: Json<NetspotConfig>,
+) -> Result<Status, Status> {
+    if state.database.add_configuration(&*new_config).is_ok() {
+        return Ok(Status::Created);
+    }
+    Err(Status::BadRequest)
+}
 
 /// # Get netspot configuration
 ///
 /// Get netspot configuration by ID
 #[openapi(tag = "Configuration")]
 #[get("/netspot/<id>")]
-pub async fn netspot_get_id(
+pub async fn netspot_get(
     state: &State<NetspotControl>,
     id: Result<i32, &str>,
 ) -> Result<Option<Json<NetspotConfig>>, Status> {
@@ -23,4 +39,43 @@ pub async fn netspot_get_id(
     }
     // TODO: Check if there is a way to return 200, 400, 404,
     //       and have type info in the generated OpenAPI
+}
+
+/// # Update an existing netspot configuration
+///
+/// Update netspot configuration by ID
+#[openapi(tag = "Configuration")]
+#[put("/netspot/<id>", data = "<config>")]
+pub async fn netspot_put(
+    state: &State<NetspotControl>,
+    id: Result<i32, &str>,
+    config: Json<NetspotConfig>,
+) -> Result<(), Status> {
+    if let Ok(id) = id {
+        return match state.database.set_configuration(id, &*config) {
+            Ok(_) => Ok(()),
+            Err(DatabaseError::NotFound) => Err(Status::NotFound),
+            Err(_) => Err(Status::BadRequest),
+        };
+    }
+    Err(Status::BadRequest)
+}
+
+/// # Delete netspot configuration
+///
+/// Delete netspot configuration by ID
+#[openapi(tag = "Configuration")]
+#[delete("/netspot/<id>")]
+pub async fn netspot_delete(
+    state: &State<NetspotControl>,
+    id: Result<i32, &str>,
+) -> Result<(), Status> {
+    if let Ok(id) = id {
+        return match state.database.delete_configuration(id) {
+            Ok(_) => Ok(()),
+            Err(DatabaseError::NotFound) => Err(Status::NotFound),
+            Err(_) => Err(Status::BadRequest),
+        };
+    }
+    Err(Status::BadRequest)
 }
