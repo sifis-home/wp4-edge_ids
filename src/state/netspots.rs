@@ -10,6 +10,10 @@ use std::{fs, io};
 // Configuration id is mapped to process handler
 type Netspots = HashMap<i32, NetspotProcess>;
 
+pub enum NetspotManagerError {
+    NotFound,
+}
+
 pub struct NetspotManager {
     netspots_lock: RwLock<Netspots>,
 }
@@ -23,6 +27,17 @@ impl NetspotManager {
         Ok(manager)
     }
 
+    pub fn restart_all(&self) {
+        self.stop_all();
+        self.start_all();
+    }
+
+    pub fn restart_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        self.stop_by_id(id)?;
+        self.start_by_id(id)?;
+        self.status_by_id(id)
+    }
+
     pub fn start_all(&self) {
         let mut netspots = self.netspots_lock.write().unwrap();
         for (id, process) in netspots.iter_mut() {
@@ -32,19 +47,34 @@ impl NetspotManager {
         }
     }
 
-    pub fn statuses(&self) -> Statuses {
-        // Lock for reading
-        let netspots = self.netspots_lock.read().unwrap();
+    pub fn start_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        {
+            // Using scope to remove write lock before reading status result
+            let mut netspots = self.netspots_lock.write().unwrap();
+            if let Some(process) = netspots.get_mut(&id) {
+                if let Err(err) = process.start() {
+                    warn!("Could not start process {}: {}", id, err.to_string());
+                }
+            }
+        }
+        self.status_by_id(id)
+    }
 
+    pub fn status_all(&self) -> Statuses {
+        let netspots = self.netspots_lock.read().unwrap();
         let mut statuses = Statuses::new();
-        for (id, process) in &*netspots {
-            statuses.push(Status {
-                id: id.clone(),
-                name: process.name().to_string(),
-                status: process.status(),
-            });
+        for process in netspots.values() {
+            statuses.push(process.status());
         }
         statuses
+    }
+
+    pub fn status_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        let netspots = self.netspots_lock.read().unwrap();
+        if let Some(process) = netspots.get(&id) {
+            return Ok(process.status());
+        }
+        Err(NetspotManagerError::NotFound)
     }
 
     pub fn stop_all(&self) {
@@ -54,6 +84,19 @@ impl NetspotManager {
                 warn!("Error while stopping process {}: {}", id, err.to_string());
             }
         }
+    }
+
+    pub fn stop_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        {
+            // Using scope to remove write lock before reading status result
+            let mut netspots = self.netspots_lock.write().unwrap();
+            if let Some(process) = netspots.get_mut(&id) {
+                if let Err(err) = process.stop() {
+                    warn!("Error while stopping process {}: {}", id, err.to_string());
+                }
+            }
+        }
+        self.status_by_id(id)
     }
 
     pub fn update_all(&self, configurations: NetspotConfigMap) -> Result<(), String> {
@@ -93,25 +136,7 @@ impl NetspotProcess {
         format!("/tmp/netspot_{}.toml", self.id)
     }
 
-    fn name(&self) -> &str {
-        &self.config.configuration.name[..]
-    }
-
-    fn set_config(&mut self, config: NetspotConfig) {
-        self.config = config;
-    }
-
-    fn start(&mut self) -> Result<(), io::Error> {
-        if self.status() == ProcessStatus::Running || self.status() == ProcessStatus::Disabled {
-            return Ok(());
-        }
-        fs::write(self.toml_file_path(), self.config.make_toml())?;
-
-        warn!("TODO: {} line {}: Start process", file!(), line!());
-        Ok(())
-    }
-
-    fn status(&self) -> ProcessStatus {
+    fn process_status(&self) -> ProcessStatus {
         if !self.config.configuration.enabled {
             return ProcessStatus::Disabled;
         }
@@ -123,8 +148,32 @@ impl NetspotProcess {
         };
     }
 
+    fn set_config(&mut self, config: NetspotConfig) {
+        self.config = config;
+    }
+
+    fn start(&mut self) -> Result<(), io::Error> {
+        if self.process_status() == ProcessStatus::Running
+            || self.process_status() == ProcessStatus::Disabled
+        {
+            return Ok(());
+        }
+        fs::write(self.toml_file_path(), self.config.make_toml())?;
+
+        warn!("TODO: {} line {}: Start process", file!(), line!());
+        Ok(())
+    }
+
+    fn status(&self) -> Status {
+        Status {
+            id: self.id,
+            name: self.config.configuration.name.clone(),
+            status: self.process_status(),
+        }
+    }
+
     fn stop(&mut self) -> Result<(), io::Error> {
-        if self.status() != ProcessStatus::Running {
+        if self.process_status() != ProcessStatus::Running {
             return Ok(());
         }
         fs::remove_file(self.toml_file_path())?;

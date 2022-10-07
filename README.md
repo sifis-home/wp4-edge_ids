@@ -104,9 +104,7 @@ netspot_control
 - [x] OpenAPI specification for the service
   - [x] Version 0.1.1 done — [yaml](docs/netspot-control-api.yaml) | [json](netspot_control/static/design/openapi.json)
   - [x] Available from the `netspot_control` service itself
-- [x] Checking for required technologies
-- [x] Dockerfile
-- [ ] Writing `netspot_control` application:
+- [x] Writing `netspot_control` application:
   - [x] Design of program parts and interactions
   - [ ] Structures
     - [x] Netspot configuration
@@ -124,10 +122,9 @@ netspot_control
   - [ ] NetspotManager (WIP)
     - [ ] SocketListener
     - [ ] NetspotSocket
-    - [ ] Status endpoints (WIP)
+    - [x] Status endpoints
   - [ ] Webhooks
     - [ ] Webhook endpoints
-  - [x] Using `rocket_okapi` could provide OpenAPI generated from the implementation
   - [ ] CORS ?
   - [ ] Authorization ?
 - [ ] WP2 Checklist
