@@ -1,5 +1,9 @@
 # WP4 netspot
 
+[![Actions Status][actions badge]][actions]
+[![CodeCov][codecov badge]][codecov]
+[![LICENSE][license badge]][license]
+
 This repository is for implementing SIFIS-Home WP4 Multi-Level Analysis using the SPOT algorithm. The solution is planned to run as a docker container where the controlling program provides HTTP REST API for other services. The controlling service is designed to run netspot programs and collect data to the cache database.
 
 Below is initial plans for the service.
@@ -136,3 +140,15 @@ netspot_control
     - [ ] Continous delivery
 - [ ] Integration tests
 - [ ] Example scripts
+
+# Acknowledgements
+
+<!-- Links -->
+[actions]: https://github.com/sifis-home/wp4-edge_ids/actions
+[codecov]: https://codecov.io/gh/sifis-home/wp4-edge_ids
+[license]: LICENSE
+
+<!-- Badges -->
+[actions badge]: https://github.com/sifis-home/wp4-edge_ids/workflows/wp4-edge_ids/badge.svg
+[codecov badge]: https://codecov.io/gh/sifis-home/wp4-edge_ids/branch/master/graph/badge.svg
+[license badge]: https://img.shields.io/badge/license-MIT-blue.svg
