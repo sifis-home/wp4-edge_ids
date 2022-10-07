@@ -66,7 +66,7 @@ For easier development on the local machine, we recommend you install the netspo
 ## TODO
 
 - [x] OpenAPI specification for the service
-  - [x] Version 0.1.0 done — [yaml](docs/netspot-control-api.yaml) | [json](netspot_control/static/design/openapi.json)
+  - [x] Version 0.1.1 done — [yaml](docs/netspot-control-api.yaml) | [json](netspot_control/static/design/openapi.json)
   - [x] Available from the `netspot_control` service itself
 - [x] Checking for required technologies
 - [x] Dockerfile
@@ -75,20 +75,20 @@ For easier development on the local machine, we recommend you install the netspo
   - [ ] Structures
     - [x] Netspot configuration
       - [x] Making TOML configuration for netspot
-    - [ ] Status
-    - [ ] Statuses
+    - [x] Status
+    - [x] Statuses
     - [ ] Statistics
     - [ ] Webhook
     - [ ] Webhooks
   - [ ] Database handler
-    - [ ] Configuration endpoints
-  - [ ] NetspotProcess
-  - [ ] NetspotManager
+    - [x] Configuration endpoints
+    - [ ] Statistics
+    - [ ] Webhooks
+  - [ ] NetspotProcess (WIP)
+  - [ ] NetspotManager (WIP)
     - [ ] SocketListener
     - [ ] NetspotSocket
-    - [ ] Status endpoints
-  - [ ] Collector
-    - [ ] Statistics endpoints
+    - [ ] Status endpoints (WIP)
   - [ ] Webhooks
     - [ ] Webhook endpoints
   - [x] Using `rocket_okapi` could provide OpenAPI generated from the implementation
@@ -98,3 +98,5 @@ For easier development on the local machine, we recommend you install the netspo
   - [ ] GitHub Action
     - [ ] Code coverage
     - [ ] Continous delivery
+- [ ] Integration tests
+- [ ] Example scripts

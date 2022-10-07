@@ -1,8 +1,8 @@
 mod models;
 mod schema;
 
-use crate::configurations::netspot::NetspotConfig;
 use crate::state::database::models::NewConfiguration;
+use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
 use diesel::prelude::*;
 use diesel::sqlite::Sqlite;
 use diesel::{Connection, SqliteConnection};
@@ -158,9 +158,9 @@ impl Database {
         }
     }
 
-    pub fn get_configurations(&self) -> Option<HashMap<i32, NetspotConfig>> {
+    pub fn get_configurations(&self) -> Result<NetspotConfigMap, String> {
         let mut connection = self.connection_mutex.lock().unwrap();
-        match schema::configurations::dsl::configurations
+        return match schema::configurations::dsl::configurations
             .load::<models::Configuration>(&mut *connection)
         {
             Ok(results) => {
@@ -171,19 +171,18 @@ impl Database {
                             netspot_configurations.insert(result.id, v);
                         }
                         Err(err) => {
-                            eprintln!(
+                            return Err(format!(
                                 "Parsing configuration {} failed: {}",
                                 result.id,
                                 err.to_string()
-                            );
+                            ));
                         }
                     }
                 }
-                return Some(netspot_configurations);
+                Ok(netspot_configurations)
             }
-            Err(err) => warn!("Query failed: {}", err.to_string()),
-        }
-        None
+            Err(err) => Err(format!("Query failed: {}", err.to_string())),
+        };
     }
 
     fn run_migrations(

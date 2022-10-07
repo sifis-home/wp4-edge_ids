@@ -4,6 +4,7 @@ pub mod stats;
 
 use rocket_okapi::okapi::schemars;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // Default configuration JSON
 //--------------------------------------------------------------------------------------------------
@@ -124,6 +125,11 @@ impl Default for NetspotConfig {
         serde_json::from_str(DEFAULT_NETSPOT_CONFIG_JSON).unwrap()
     }
 }
+
+// Id mapped to configuration
+//--------------------------------------------------------------------------------------------------
+
+pub type NetspotConfigMap = HashMap<i32, NetspotConfig>;
 
 // Unit tests
 //--------------------------------------------------------------------------------------------------

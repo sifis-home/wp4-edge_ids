@@ -1,6 +1,6 @@
 mod api_v1;
-mod configurations;
 mod state;
+mod structures;
 
 use crate::state::NetspotControl;
 use rocket::debug;

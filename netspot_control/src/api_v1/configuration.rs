@@ -1,10 +1,21 @@
-use crate::configurations::netspot::NetspotConfig;
 use crate::state::database::DatabaseError;
+use crate::structures::configuration::NetspotConfig;
 use crate::NetspotControl;
 use rocket::http::Status;
+use rocket::log::private::warn;
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, put, State};
 use rocket_okapi::openapi;
+
+fn update_all_netspots(state: &State<NetspotControl>) {
+    if let Ok(configurations) = state.database.get_configurations() {
+        if state.netspots.update_all(configurations).is_err() {
+            warn!("Unexpected: updating process configurations failed");
+        }
+    } else {
+        warn!("Unexpected: reading configurations failed");
+    }
+}
 
 /// # Create a new netspot configuration
 ///
@@ -16,6 +27,7 @@ pub async fn netspot_add(
     new_config: Json<NetspotConfig>,
 ) -> Result<Status, Status> {
     if state.database.add_configuration(&*new_config).is_ok() {
+        update_all_netspots(state);
         return Ok(Status::Created);
     }
     Err(Status::BadRequest)
@@ -53,7 +65,10 @@ pub async fn netspot_put(
 ) -> Result<(), Status> {
     if let Ok(id) = id {
         return match state.database.set_configuration(id, &*config) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                update_all_netspots(state);
+                Ok(())
+            }
             Err(DatabaseError::NotFound) => Err(Status::NotFound),
             Err(_) => Err(Status::BadRequest),
         };
@@ -72,7 +87,10 @@ pub async fn netspot_delete(
 ) -> Result<(), Status> {
     if let Ok(id) = id {
         return match state.database.delete_configuration(id) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                update_all_netspots(state);
+                Ok(())
+            }
             Err(DatabaseError::NotFound) => Err(Status::NotFound),
             Err(_) => Err(Status::BadRequest),
         };
