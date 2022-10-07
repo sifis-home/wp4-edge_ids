@@ -40,7 +40,7 @@ RUN apt update && apt install -y $PACKAGES
 
 # Building netspot control
 WORKDIR /opt/netspot_control
-COPY netspot_control .
+COPY . .
 RUN cargo build --release
 
 # Building the netspot_control
@@ -56,7 +56,7 @@ ARG PACKAGES="libpcap0.8 libsqlite3-0"
 RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y $PACKAGES && rm -rf /var/lib/apt/lists/*
 COPY --from=GO-BUILDER /usr/bin/netspot /usr/bin/netspot
 COPY --from=RUST-BUILDER /opt/netspot_control/target/release/netspot_control /usr/bin/netspot_control
-COPY netspot_control/static /opt/netspot_control/static
+COPY static /opt/netspot_control/static
 
 # Default Rocket server setting
 ENV ROCKET_ADDRESS=0.0.0.0

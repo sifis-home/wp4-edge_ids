@@ -8,9 +8,15 @@ Below is initial plans for the service.
 
 ## Project folders
 
+* *db – database location, when developing, can be changed from the .env file*
 * docs – Documentation and plans
-* netspot_control - Rust project for developing the planned service
-  * Currently implements only listing of host system network interface
+* migrations – Diesel migration scripts for the database schema
+* src – Netspot Control service source files
+  * api_v1 – Source files for the HTTP API version 1.x.x (and also 0.x.x while still in development)
+  * state – Source files for shared state
+  * structures – Source files for structures used between components
+
+* static – Static files served by the Netspot Control server when run
 
 ## Netspot
 
@@ -59,9 +65,39 @@ For using another port add `--env=ROCKET_PORT=<port number>` to docker run comma
 docker run --detach --name=netspot_control --cap-add=NET_ADMIN --network=host --env=ROCKET_PORT=3000 netspot_control
 ```
 
-## Development
+### Database
 
-For easier development on the local machine, we recommend you install the netspot on your systems to make it available for the netspot_control application. When you run the netspot_control with `cargo run`, it will use port 8000 by default. You can change the port by using the `ROCKET_PORT` environment variable.
+Database is stored into the `/var/lib/netspot_control/` path in the container. This can be changed by adding `--env=DB_FILE_PATH=/my/custom/path` to docker arguments. However, that will only change the location inside the container and is not persistent. 
+
+For a persistent database, we have two options: volumes and bind mounts.
+
+See https://docs.docker.com/storage/ for more details.
+
+#### Using volume
+
+Create volume
+
+```bash
+docker volume create netspot_control_volume
+```
+
+Start container with the volume
+
+```bash
+docker run --detach --name=netspot_control --cap-add=NET_ADMIN --network=host \
+--mount source=netspot_control_volume,target=/var/lib/netspot_control \
+netspot_control
+```
+
+#### Bind mount
+
+Start container with bind mount
+
+```bash
+docker run --detach --name=netspot_control --cap-add=NET_ADMIN --network=host \
+-v /my/local/db/path:/var/lib/netspot_control \
+netspot_control
+```
 
 ## TODO
 
