@@ -18,7 +18,7 @@ jobs:
 
     - name: Install libpcapt
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
@@ -49,7 +49,7 @@ jobs:
 
     - name: Install libpcap
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Install Rust stable
       uses: actions-rs/toolchain@v1
@@ -76,7 +76,7 @@ jobs:
 
     - name: Install libpcap
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Install Rust stable
       uses: actions-rs/toolchain@v1
@@ -161,7 +161,7 @@ jobs:
 
     - name: Install libpcap
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Install Rust stable
       uses: actions-rs/toolchain@v1
@@ -193,7 +193,7 @@ jobs:
 
     - name: Install libpcap
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Cache produced data
       id: cache-data
@@ -262,7 +262,7 @@ jobs:
 
     - name: Install libpcap
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Install rust-code-analysis
       env:
@@ -295,7 +295,7 @@ jobs:
 
     - name: Install libpcap
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
@@ -362,7 +362,7 @@ jobs:
 
     - name: Install libpcap
       run: |
-        DEBIAN_FRONTEND=noninteractive apt update && apt install -y libpcap0.8-dev
+        DEBIAN_FRONTEND=noninteractive sudo apt update && sudo apt install -y libpcap0.8-dev
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
