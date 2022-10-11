@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 // Stats contains which statistics are calculated. All stats are optional.
 //--------------------------------------------------------------------------------------------------
-#[derive(Debug, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct StatsConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avg_pkt_size: Option<stat::StatConfig>,
@@ -62,7 +62,7 @@ impl StatsConfig {
             }
         };
         // Making analyzer configuration in TOML
-        format!("[analyzer]\nperiod = \"1s\"\nstats = {stats}\n\n")
+        format!("[analyzer]\nperiod = \"1s\"\nstats = {stats}")
     }
 
     pub fn make_spots_toml(&self) -> String {
@@ -94,26 +94,6 @@ impl StatsConfig {
         }
         // Return result string
         result
-    }
-}
-
-// Default values
-//--------------------------------------------------------------------------------------------------
-
-impl Default for StatsConfig {
-    fn default() -> Self {
-        StatsConfig {
-            avg_pkt_size: None,
-            perf: None,
-            r_ack: None,
-            r_arp: None,
-            r_dst_src: None,
-            r_dst_src_port: None,
-            r_icmp: None,
-            r_ip: None,
-            r_syn: None,
-            traffic: None,
-        }
     }
 }
 
@@ -201,9 +181,7 @@ mod tests {
         .unwrap();
         let expected = r#"[analyzer]
 period = "1s"
-stats = []
-
-"#;
+stats = []"#;
         assert_eq!(config.make_analyzer_toml(), expected);
 
         // We should get empty listing for spot settings
@@ -231,9 +209,7 @@ stats = []
         .unwrap();
         let expected = r#"[analyzer]
 period = "1s"
-stats = ["AVG_PKT_SIZE", "PERF", "R_ACK", "R_ARP", "R_DST_SRC", "R_DST_SRC_PORT", "R_ICMP", "R_IP", "R_SYN", "TRAFFIC"]
-
-"#;
+stats = ["AVG_PKT_SIZE", "PERF", "R_ACK", "R_ARP", "R_DST_SRC", "R_DST_SRC_PORT", "R_ICMP", "R_IP", "R_SYN", "TRAFFIC"]"#;
         assert_eq!(config.make_analyzer_toml(), expected);
 
         // We should get SPOT overrides for all items where q is 1

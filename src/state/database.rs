@@ -46,10 +46,7 @@ impl Database {
             }
             Some(path) => {
                 if let Err(err) = fs::create_dir_all(path) {
-                    return Err(format!(
-                        "Could not create database path: {}",
-                        err.to_string()
-                    ));
+                    return Err(format!("Could not create database path: {}", err));
                 }
             }
         }
@@ -57,12 +54,12 @@ impl Database {
         // Get database connection
         let mut connection = match SqliteConnection::establish(&database_file) {
             Ok(connection) => connection,
-            Err(err) => return Err(format!("Could not open database: {}", err.to_string())),
+            Err(err) => return Err(format!("Could not open database: {}", err)),
         };
 
         // Run migrations
         if let Err(err) = Database::run_migrations(&mut connection) {
-            return Err(format!("Could not run migrations: {}", err.to_string()));
+            return Err(format!("Could not run migrations: {}", err));
         }
 
         // Return complete database
@@ -86,10 +83,7 @@ impl Database {
                     Ok(rows) => Err(format!("Unexpected row write count: {}", rows)),
                 }
             }
-            Err(err) => Err(format!(
-                "Could not convert NetspotConfig to JSON: {}",
-                err.to_string()
-            )),
+            Err(err) => Err(format!("Could not convert NetspotConfig to JSON: {}", err)),
         }
     }
 
@@ -153,7 +147,7 @@ impl Database {
             }
             Err(err) => Err(DatabaseError::Unexpected(format!(
                 "Could not convert NetspotConfig to JSON: {}",
-                err.to_string()
+                err
             ))),
         }
     }
@@ -173,15 +167,14 @@ impl Database {
                         Err(err) => {
                             return Err(format!(
                                 "Parsing configuration {} failed: {}",
-                                result.id,
-                                err.to_string()
+                                result.id, err
                             ));
                         }
                     }
                 }
                 Ok(netspot_configurations)
             }
-            Err(err) => Err(format!("Query failed: {}", err.to_string())),
+            Err(err) => Err(format!("Query failed: {}", err)),
         };
     }
 

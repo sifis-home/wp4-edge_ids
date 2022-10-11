@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 // Stat is configuration for named stats
 //--------------------------------------------------------------------------------------------------
-#[derive(Debug, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct StatConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -62,26 +62,6 @@ impl StatConfig {
             output.push_str(format!("max_excess = {}\n", value).as_str());
         };
         output
-    }
-}
-
-// Default values
-//--------------------------------------------------------------------------------------------------
-
-impl Default for StatConfig {
-    fn default() -> Self {
-        StatConfig {
-            enabled: false,
-            depth: None,
-            q: None,
-            n_init: None,
-            level: None,
-            up: None,
-            down: None,
-            alert: None,
-            bounded: None,
-            max_excess: None,
-        }
     }
 }
 

@@ -58,65 +58,48 @@ pub struct NetspotConfig {
 
 impl NetspotConfig {
     pub fn make_toml(&self) -> String {
-        // Adding: miner
-        let mut toml = format!(
-            "[miner]\n\
-        device = \"{}\"\n\
-        promiscuous = {}\n\
-        snapshot_len = 65535\n\
-        timeout = \"0s\"\n\
-        \n",
-            self.configuration.device, self.configuration.promiscuous
-        );
+        format!(
+            r#"[miner]
+device = "{device}"
+promiscuous = {promiscuous}
+snapshot_len = 65535
+timeout = "0s"
 
-        // Adding: analyzer
-        toml.push_str(&self.stats.make_analyzer_toml());
+{analyzer}
 
-        // Adding socket exporter
-        toml.push_str(&format!(
-            r#"[exporter.socket]
+[exporter.socket]
 data = "unix:///tmp/netspot_data.socket"
 alarm = "unix:///tmp/netspot_alarm.socket"
-tag = "{}"
+tag = "{tag}"
 format = "json"
 
-"#,
-            self.configuration.name
-        ));
+[spot]
+depth = {depth}
+q = {q}
+n_init = {n_init}
+level = {level}
+up = {up}
+down = {down}
+alert = {alert}
+bounded = {bounded}
+max_excess = {max_excess}
 
-        // Adding: spot (default configuration)
-        toml.push_str(
-            format!(
-                r#"[spot]
-depth = {}
-q = {}
-n_init = {}
-level = {}
-up = {}
-down = {}
-alert = {}
-bounded = {}
-max_excess = {}
-
-"#,
-                self.spot.depth,
-                self.spot.q,
-                self.spot.n_init,
-                self.spot.level,
-                self.spot.up,
-                self.spot.down,
-                self.spot.alert,
-                self.spot.bounded,
-                self.spot.max_excess
-            )
-            .as_str(),
-        );
-
-        // Adding spot overrides
-        toml.push_str(self.stats.make_spots_toml().as_str());
-
-        // Return complete configuration
-        toml
+{spot_overrides}"#,
+            device = self.configuration.device,
+            promiscuous = self.configuration.promiscuous,
+            analyzer = self.stats.make_analyzer_toml(),
+            tag = self.configuration.name,
+            depth = self.spot.depth,
+            q = self.spot.q,
+            n_init = self.spot.n_init,
+            level = self.spot.level,
+            up = self.spot.up,
+            down = self.spot.down,
+            alert = self.spot.alert,
+            bounded = self.spot.bounded,
+            max_excess = self.spot.max_excess,
+            spot_overrides = self.stats.make_spots_toml()
+        )
     }
 }
 

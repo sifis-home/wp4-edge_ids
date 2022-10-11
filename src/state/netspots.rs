@@ -142,10 +142,10 @@ impl NetspotProcess {
         }
         // TODO: Implement checking for if process is actually running or not
         let path = PathBuf::from(self.toml_file_path());
-        return match path.exists() {
+        match path.exists() {
             true => ProcessStatus::Running,
             false => ProcessStatus::Stopped,
-        };
+        }
     }
 
     fn set_config(&mut self, config: NetspotConfig) {
