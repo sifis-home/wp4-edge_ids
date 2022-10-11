@@ -129,45 +129,45 @@ mod tests {
         // MinerConfig
         assert_eq!("Default configuration", config.configuration.name);
         assert_eq!("any", config.configuration.device);
-        assert_eq!(true, config.configuration.promiscuous);
-        assert_eq!(true, config.configuration.enabled);
+        assert!(config.configuration.promiscuous);
+        assert!(config.configuration.enabled);
 
         // SpotConfig
         assert_eq!(50, config.spot.depth);
         assert_eq!(1e-5, config.spot.q);
         assert_eq!(2000, config.spot.n_init);
         assert_eq!(0.98, config.spot.level);
-        assert_eq!(true, config.spot.up);
-        assert_eq!(false, config.spot.down);
-        assert_eq!(true, config.spot.alert);
-        assert_eq!(true, config.spot.bounded);
+        assert!(config.spot.up);
+        assert!(!config.spot.down);
+        assert!(config.spot.alert);
+        assert!(config.spot.bounded);
         assert_eq!(200, config.spot.max_excess);
 
         // StatsConfig
         if let Some(ref config) = config.stats.avg_pkt_size {
-            assert_eq!(true, config.enabled);
+            assert!(config.enabled);
             assert_eq!(Some(1), config.max_excess);
         } else {
             panic!("We should have avg_pkt_size configuration here");
         }
         if let Some(ref config) = config.stats.perf {
-            assert_eq!(true, config.enabled);
+            assert!(config.enabled);
             assert_eq!(Some(false), config.up);
         } else {
             panic!("We should have perf configuration here");
         }
         if let Some(ref config) = config.stats.r_arp {
-            assert_eq!(true, config.enabled);
+            assert!(config.enabled);
         } else {
             panic!("We should have r_arp configuration here");
         }
         if let Some(ref config) = config.stats.r_syn {
-            assert_eq!(true, config.enabled);
+            assert!(config.enabled);
         } else {
             panic!("We should have r_syn configuration here");
         }
         if let Some(ref config) = config.stats.traffic {
-            assert_eq!(true, config.enabled);
+            assert!(config.enabled);
         } else {
             panic!("We should have traffic configuration here");
         }
@@ -189,18 +189,18 @@ mod tests {
         // MinerConfig
         assert_eq!("test", config.configuration.name);
         assert_eq!("any", config.configuration.device);
-        assert_eq!(true, config.configuration.promiscuous);
-        assert_eq!(true, config.configuration.enabled);
+        assert!(config.configuration.promiscuous);
+        assert!(config.configuration.enabled);
 
         // SpotConfig
         assert_eq!(50, config.spot.depth);
         assert_eq!(1e-4, config.spot.q);
         assert_eq!(1000, config.spot.n_init);
         assert_eq!(0.8, config.spot.level);
-        assert_eq!(true, config.spot.up);
-        assert_eq!(false, config.spot.down);
-        assert_eq!(true, config.spot.alert);
-        assert_eq!(true, config.spot.bounded);
+        assert!(config.spot.up);
+        assert!(!config.spot.down);
+        assert!(config.spot.alert);
+        assert!(config.spot.bounded);
         assert_eq!(200, config.spot.max_excess);
 
         // All stats should be None

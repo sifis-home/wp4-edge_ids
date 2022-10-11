@@ -76,7 +76,7 @@ mod tests {
     fn defaults() {
         // Deserialize should use default values for missing configs
         let config: StatConfig = serde_json::from_str(r#"{}"#).unwrap();
-        assert_eq!(false, config.enabled);
+        assert!(!config.enabled);
         assert_eq!(None, config.depth);
         assert_eq!(None, config.q);
         assert_eq!(None, config.n_init);
@@ -109,7 +109,7 @@ mod tests {
     }"#,
         )
         .unwrap();
-        assert_eq!(true, config.enabled);
+        assert!(config.enabled);
         assert_eq!(Some(1), config.depth);
         assert_eq!(Some(2.2), config.q);
         assert_eq!(Some(3), config.n_init);

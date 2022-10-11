@@ -145,7 +145,7 @@ mod tests {
         // We should have perf config now
         assert!(config.perf.is_some());
         if let Some(ref perf) = config.perf {
-            assert_eq!(true, perf.enabled);
+            assert!(perf.enabled);
             assert_eq!(Some(1), perf.depth);
             assert_eq!(Some(2.0), perf.q);
             assert_eq!(Some(3), perf.n_init);

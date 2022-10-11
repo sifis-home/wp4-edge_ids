@@ -95,10 +95,10 @@ mod tests {
         assert_eq!(1e-4, config.q);
         assert_eq!(1000, config.n_init);
         assert_eq!(0.8, config.level);
-        assert_eq!(true, config.up);
-        assert_eq!(false, config.down);
-        assert_eq!(true, config.alert);
-        assert_eq!(true, config.bounded);
+        assert!(config.up);
+        assert!(!config.down);
+        assert!(config.alert);
+        assert!(config.bounded);
         assert_eq!(200, config.max_excess);
     }
 
@@ -123,10 +123,10 @@ mod tests {
         assert_eq!(2.0, config.q);
         assert_eq!(3, config.n_init);
         assert_eq!(4.0, config.level);
-        assert_eq!(false, config.up);
-        assert_eq!(true, config.down);
-        assert_eq!(false, config.alert);
-        assert_eq!(false, config.bounded);
+        assert!(!config.up);
+        assert!(config.down);
+        assert!(!config.alert);
+        assert!(!config.bounded);
         assert_eq!(5, config.max_excess);
     }
 }

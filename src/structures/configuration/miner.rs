@@ -44,8 +44,8 @@ mod tests {
         let config: MinerConfig = serde_json::from_str(r#"{"name":"test"}"#).unwrap();
         assert_eq!("test", config.name);
         assert_eq!("any", config.device);
-        assert_eq!(true, config.promiscuous);
-        assert_eq!(true, config.enabled);
+        assert!(config.promiscuous);
+        assert!(config.enabled);
     }
 
     #[test]
@@ -57,8 +57,8 @@ mod tests {
         .unwrap();
         assert_eq!("test", config.name);
         assert_eq!("eth0", config.device);
-        assert_eq!(false, config.promiscuous);
-        assert_eq!(false, config.enabled);
+        assert!(!config.promiscuous);
+        assert!(!config.enabled);
     }
 
     #[test]

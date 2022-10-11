@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 // Process status
 //--------------------------------------------------------------------------------------------------
 
-#[derive(Debug, Deserialize, PartialEq, Serialize, schemars::JsonSchema)]
+#[derive(Debug, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ProcessStatus {
     Running,
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn statuses_serialize() {
-        let statuses = Statuses::from(vec![
+        let statuses = vec![
             Status {
                 id: 1,
                 name: "Test".to_string(),
@@ -93,7 +93,7 @@ mod tests {
                 name: "Yet another test".to_string(),
                 status: ProcessStatus::Disabled,
             },
-        ]);
+        ];
         let json = serde_json::to_string(&statuses).unwrap();
         let expected = concat!(
             r#"[{"id":1,"name":"Test","status":"running"},"#,

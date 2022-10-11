@@ -154,7 +154,7 @@ impl Database {
 
     pub fn get_configurations(&self) -> Result<NetspotConfigMap, String> {
         let mut connection = self.connection_mutex.lock().unwrap();
-        return match schema::configurations::dsl::configurations
+        match schema::configurations::dsl::configurations
             .load::<models::Configuration>(&mut *connection)
         {
             Ok(results) => {
@@ -175,7 +175,7 @@ impl Database {
                 Ok(netspot_configurations)
             }
             Err(err) => Err(format!("Query failed: {}", err)),
-        };
+        }
     }
 
     fn run_migrations(
