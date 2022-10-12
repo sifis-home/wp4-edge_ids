@@ -1,13 +1,13 @@
 use crate::state::database::DatabaseError;
+use crate::state::NetspotControlState;
 use crate::structures::configuration::NetspotConfig;
-use crate::NetspotControl;
 use rocket::http::Status;
 use rocket::log::private::warn;
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, put, State};
 use rocket_okapi::openapi;
 
-fn update_all_netspots(state: &State<NetspotControl>) {
+fn update_all_netspots(state: &State<NetspotControlState>) {
     if let Ok(configurations) = state.database.get_configurations() {
         if state.netspots.update_all(configurations).is_err() {
             warn!("Unexpected: updating process configurations failed");
@@ -23,7 +23,7 @@ fn update_all_netspots(state: &State<NetspotControl>) {
 #[openapi(tag = "Configuration")]
 #[post("/netspot", data = "<new_config>")]
 pub async fn netspot_add(
-    state: &State<NetspotControl>,
+    state: &State<NetspotControlState>,
     new_config: Json<NetspotConfig>,
 ) -> Result<Status, Status> {
     if state.database.add_configuration(&*new_config).is_ok() {
@@ -39,7 +39,7 @@ pub async fn netspot_add(
 #[openapi(tag = "Configuration")]
 #[get("/netspot/<id>")]
 pub async fn netspot_get(
-    state: &State<NetspotControl>,
+    state: &State<NetspotControlState>,
     id: Result<i32, &str>,
 ) -> Result<Option<Json<NetspotConfig>>, Status> {
     match id {
@@ -59,7 +59,7 @@ pub async fn netspot_get(
 #[openapi(tag = "Configuration")]
 #[put("/netspot/<id>", data = "<config>")]
 pub async fn netspot_put(
-    state: &State<NetspotControl>,
+    state: &State<NetspotControlState>,
     id: Result<i32, &str>,
     config: Json<NetspotConfig>,
 ) -> Result<(), Status> {
@@ -82,7 +82,7 @@ pub async fn netspot_put(
 #[openapi(tag = "Configuration")]
 #[delete("/netspot/<id>")]
 pub async fn netspot_delete(
-    state: &State<NetspotControl>,
+    state: &State<NetspotControlState>,
     id: Result<i32, &str>,
 ) -> Result<(), Status> {
     if let Ok(id) = id {

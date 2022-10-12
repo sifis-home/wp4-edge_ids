@@ -2,8 +2,7 @@ mod api_v1;
 mod state;
 mod structures;
 
-use crate::state::NetspotControl;
-use rocket::debug;
+use crate::state::NetspotControlFairing;
 use rocket::fs::{relative, FileServer};
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
@@ -30,19 +29,10 @@ async fn main() {
         ..Default::default()
     };
 
-    // Create configuration and state manager
-    let state = match NetspotControl::new() {
-        Ok(state) => state,
-        Err(err) => {
-            eprintln!("NetspotControl: {}", err);
-            return;
-        }
-    };
-
     // Launch server
     let launch_result = rocket::build()
-        // Managed state through NetspotControl
-        .manage(state)
+        // Attach Netspot Control Fairing
+        .attach(NetspotControlFairing {})
         // Mount static files to root
         .mount("/", FileServer::from(relative!("static")))
         // Mount APIv1
@@ -57,15 +47,8 @@ async fn main() {
         .launch()
         .await;
 
-    // Checking launch result
-    match launch_result {
-        Ok(rocket) => {
-            // Shutdown configuration and state manager
-            if let Some(configuration_and_state_manager) = rocket.state::<NetspotControl>() {
-                configuration_and_state_manager.shutdown();
-            }
-            debug!("Server shut down gracefully.")
-        }
-        Err(err) => debug!("Rocket had an error: {}", err),
+    // Print error if launching server failed
+    if let Err(err) = launch_result {
+        eprintln!("Rocket had an error: {}", err);
     };
 }
