@@ -122,15 +122,16 @@ netspot_control
     - [ ] Webhooks
   - [ ] NetspotProcess (WIP)
   - [ ] NetspotManager (WIP)
-    - [ ] SocketListener
-    - [ ] NetspotSocket
+    - [x] SocketListener
+    - [x] NetspotSocket
+      - [ ] Forwarding received data to exporters via suitable channel
     - [x] Status endpoints
   - [ ] Webhooks
     - [ ] Webhook endpoints
   - [ ] CORS ?
   - [ ] Authorization ?
 - [ ] WP2 Checklist
-  - [ ] GitHub Action
+  - [x] GitHub Action
     - [ ] Code coverage
     - [ ] Continous delivery
 - [ ] Integration tests

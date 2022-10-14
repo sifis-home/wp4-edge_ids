@@ -1,5 +1,9 @@
+mod net;
+
+use crate::state::netspots::net::SocketUse;
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
 use crate::structures::status::{ProcessStatus, Status, Statuses};
+use rocket::tokio::sync::{broadcast, mpsc};
 use rocket::warn;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -19,7 +23,17 @@ pub struct NetspotManager {
 }
 
 impl NetspotManager {
-    pub fn new(configurations: NetspotConfigMap) -> Result<NetspotManager, String> {
+    pub fn new(
+        shutdown_request_rx: broadcast::Receiver<()>,
+        shutdown_complete_tx: mpsc::Sender<()>,
+        configurations: NetspotConfigMap,
+    ) -> Result<NetspotManager, String> {
+        net::start_listener_task(
+            SocketUse::Alarm,
+            shutdown_request_rx.resubscribe(),
+            shutdown_complete_tx.clone(),
+        )?;
+        net::start_listener_task(SocketUse::Data, shutdown_request_rx, shutdown_complete_tx)?;
         let manager = NetspotManager {
             netspots_lock: RwLock::new(Netspots::new()),
         };

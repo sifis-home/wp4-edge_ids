@@ -2,8 +2,9 @@ mod api_v1;
 mod state;
 mod structures;
 
-use crate::state::NetspotControlFairing;
+use crate::state::NetspotControlState;
 use rocket::fs::{relative, FileServer};
+use rocket::tokio::sync::mpsc;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
@@ -29,10 +30,23 @@ async fn main() {
         ..Default::default()
     };
 
+    // We prepare the multi-producer, single-consumer channel, which is given for NetspotControl
+    // worker tasks. At the end of the program, we wait for the channel to shut down to ensure all
+    // worker tasks are done with their work. Then we create a state object with the shutdown
+    // sender object.
+    let (shutdown_complete_tx, mut shutdown_complete_rx) = mpsc::channel::<()>(1);
+    let state = match NetspotControlState::new(shutdown_complete_tx) {
+        Ok(state) => state,
+        Err(err) => {
+            eprintln!("Netspot Control had an error: {}", err);
+            return;
+        }
+    };
+
     // Launch server
     let launch_result = rocket::build()
-        // Attach Netspot Control Fairing
-        .attach(NetspotControlFairing {})
+        // Managed state through NetspotControl
+        .manage(state)
         // Mount static files to root
         .mount("/", FileServer::from(relative!("static")))
         // Mount APIv1
@@ -48,7 +62,19 @@ async fn main() {
         .await;
 
     // Print error if launching server failed
-    if let Err(err) = launch_result {
-        eprintln!("Rocket had an error: {}", err);
+    match launch_result {
+        Ok(rocket) => {
+            // Shutdown state manager as cleanly as possible
+            if let Some(state) = rocket.state::<NetspotControlState>() {
+                state.shutdown().await;
+            }
+        }
+        Err(err) => {
+            eprintln!("Rocket had an error: {}", err);
+        }
     };
+
+    // Wait for NetspotControl worker tasks to stop
+    let _ = shutdown_complete_rx.recv().await;
+    println!("NetspotControl shutdown completed.")
 }
