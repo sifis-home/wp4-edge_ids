@@ -3,7 +3,7 @@ pub mod netspots;
 
 use database::Database;
 use netspots::NetspotManager;
-use rocket::tokio::sync::{broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc};
 
 // Netspot Control State
 //--------------------------------------------------------------------------------------------------

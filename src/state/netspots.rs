@@ -3,13 +3,19 @@ mod net;
 use crate::state::netspots::net::SocketUse;
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
 use crate::structures::status::{ProcessStatus, Status, Statuses};
-use rocket::tokio::sync::{broadcast, mpsc};
+
+use nix::sys::signal;
+use nix::sys::signal::Signal;
+use nix::unistd::Pid;
 use rocket::warn;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::RwLock;
+use std::time::Duration;
 use std::{fs, io};
+use tokio::process::{Child, Command};
+use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio::time;
 
 // Configuration id is mapped to process handler
 type Netspots = HashMap<i32, NetspotProcess>;
@@ -20,6 +26,7 @@ pub enum NetspotManagerError {
 
 pub struct NetspotManager {
     netspots_lock: RwLock<Netspots>,
+    shutdown_complete_tx: mpsc::Sender<()>,
 }
 
 impl NetspotManager {
@@ -33,9 +40,14 @@ impl NetspotManager {
             shutdown_request_rx.resubscribe(),
             shutdown_complete_tx.clone(),
         )?;
-        net::start_listener_task(SocketUse::Data, shutdown_request_rx, shutdown_complete_tx)?;
+        net::start_listener_task(
+            SocketUse::Data,
+            shutdown_request_rx,
+            shutdown_complete_tx.clone(),
+        )?;
         let manager = NetspotManager {
             netspots_lock: RwLock::new(Netspots::new()),
+            shutdown_complete_tx,
         };
         manager.update_all(configurations)?;
         Ok(manager)
@@ -94,7 +106,7 @@ impl NetspotManager {
     pub fn stop_all(&self) {
         let mut netspots = self.netspots_lock.write().unwrap();
         for (id, process) in netspots.iter_mut() {
-            if let Err(err) = process.stop() {
+            if let Err(err) = process.stop(self.shutdown_complete_tx.clone()) {
                 warn!("Error while stopping process {}: {}", id, err.to_string());
             }
         }
@@ -105,7 +117,7 @@ impl NetspotManager {
             // Using scope to remove write lock before reading status result
             let mut netspots = self.netspots_lock.write().unwrap();
             if let Some(process) = netspots.get_mut(&id) {
-                if let Err(err) = process.stop() {
+                if let Err(err) = process.stop(self.shutdown_complete_tx.clone()) {
                     warn!("Error while stopping process {}: {}", id, err.to_string());
                 }
             }
@@ -139,11 +151,16 @@ impl NetspotManager {
 pub struct NetspotProcess {
     id: i32,
     config: NetspotConfig,
+    process: Option<Child>,
 }
 
 impl NetspotProcess {
     fn from(id: i32, config: NetspotConfig) -> NetspotProcess {
-        NetspotProcess { id, config }
+        NetspotProcess {
+            id,
+            config,
+            process: None,
+        }
     }
 
     fn toml_file_path(&self) -> String {
@@ -154,11 +171,9 @@ impl NetspotProcess {
         if !self.config.configuration.enabled {
             return ProcessStatus::Disabled;
         }
-        // TODO: Implement checking for if process is actually running or not
-        let path = PathBuf::from(self.toml_file_path());
-        match path.exists() {
-            true => ProcessStatus::Running,
-            false => ProcessStatus::Stopped,
+        match self.process {
+            None => ProcessStatus::Stopped,
+            Some(_) => ProcessStatus::Running,
         }
     }
 
@@ -172,10 +187,20 @@ impl NetspotProcess {
         {
             return Ok(());
         }
-        fs::write(self.toml_file_path(), self.config.make_toml())?;
 
-        warn!("TODO: {} line {}: Start process", file!(), line!());
-        Ok(())
+        let toml_file = self.toml_file_path();
+        fs::write(&toml_file, self.config.make_toml())?;
+
+        match Command::new("netspot")
+            .args(["run", "-c", &toml_file])
+            .spawn()
+        {
+            Ok(process) => {
+                self.process = Some(process);
+                Ok(())
+            }
+            Err(err) => Err(err),
+        }
     }
 
     fn status(&self) -> Status {
@@ -186,24 +211,44 @@ impl NetspotProcess {
         }
     }
 
-    fn stop(&mut self) -> Result<(), io::Error> {
+    fn stop(&mut self, shutdown_complete_tx: mpsc::Sender<()>) -> Result<(), io::Error> {
         if self.process_status() != ProcessStatus::Running {
             return Ok(());
         }
-        fs::remove_file(self.toml_file_path())?;
-        warn!("TODO: {} line {}: Stop process", file!(), line!());
-        Ok(())
-    }
-}
+        if let Some(mut process) = self.process.take() {
+            // Copying id for the thread
+            let netspot_id = self.id;
+            // Run netspot shutdown in a separate task
+            let _ = tokio::spawn(async move {
+                // Try to terminate netspot with SIGINT
+                if let Some(id) = process.id() {
+                    if let Err(err) = signal::kill(Pid::from_raw(id as i32), Signal::SIGINT) {
+                        eprintln!(
+                            "Unexpected error: Could not send SIGINT for netspot process: {}",
+                            err
+                        );
+                    }
+                }
 
-impl Drop for NetspotProcess {
-    fn drop(&mut self) {
-        if let Err(err) = self.stop() {
-            warn!(
-                "Error while stopping process {}: {}",
-                self.id,
-                err.to_string()
-            );
+                // We allow 5 seconds for the netspot to shutdown correctly
+                let (tx, rx) = oneshot::channel::<()>();
+                let timeout = time::timeout(Duration::from_secs(5), rx);
+                tokio::select! {
+                    _ = process.wait() => {
+                        drop(tx);
+                        println!("Netspot configuration {} stopped correctly.", netspot_id);
+                    }
+                    _ = timeout => {
+                        eprintln!("Netspot configuration {} did not stop correctly. \
+                                   Terminating the netspot process.", netspot_id);
+                        let _ = process.kill().await ;
+                    }
+                };
+                drop(shutdown_complete_tx);
+            });
         }
+        assert!(self.process.is_none());
+        fs::remove_file(self.toml_file_path())?;
+        Ok(())
     }
 }

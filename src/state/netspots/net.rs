@@ -1,9 +1,8 @@
-use rocket::tokio;
-use rocket::tokio::io::{AsyncBufReadExt, BufReader};
-use rocket::tokio::net::{UnixListener, UnixStream};
-use rocket::tokio::sync::{broadcast, mpsc};
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::net::{UnixListener, UnixStream};
+use tokio::sync::{broadcast, mpsc};
 
 // Socket use decides location for the Unix socket file
 pub enum SocketUse {
@@ -86,7 +85,7 @@ async fn handle_connection(
     name: &'static str,
 ) {
     let fd = stream.as_raw_fd();
-    println!("{} connection in file descriptor {} connected", name, fd);
+    println!("{} connection in file descriptor {} connected.", name, fd);
     let mut reader = BufReader::new(stream);
     let mut buffer = Vec::new();
     loop {
@@ -100,7 +99,7 @@ async fn handle_connection(
                         buffer.clear();
                     },
                     Err(err) => {
-                        eprintln!("Unexpected error: {}", err);
+                        eprintln!("Unexpected error: {}.", err);
                         break;
                     }
                 }
@@ -110,6 +109,9 @@ async fn handle_connection(
             }
         }
     }
-    println!("{} connection in file descriptor {} disconnected", name, fd);
+    println!(
+        "{} connection in file descriptor {} disconnected.",
+        name, fd
+    );
     drop(shutdown_complete_tx);
 }

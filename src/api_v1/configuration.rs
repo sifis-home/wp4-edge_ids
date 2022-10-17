@@ -86,6 +86,7 @@ pub async fn netspot_delete(
     id: Result<i32, &str>,
 ) -> Result<(), Status> {
     if let Ok(id) = id {
+        let _ = state.netspots.stop_by_id(id);
         return match state.database.delete_configuration(id) {
             Ok(_) => {
                 update_all_netspots(state);

@@ -4,10 +4,10 @@ mod structures;
 
 use crate::state::NetspotControlState;
 use rocket::fs::{relative, FileServer};
-use rocket::tokio::sync::mpsc;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+use tokio::sync::mpsc;
 
 #[rocket::main]
 async fn main() {
