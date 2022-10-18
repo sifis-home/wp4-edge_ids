@@ -113,18 +113,21 @@ netspot_control
       - [x] Making TOML configuration for netspot
     - [x] Status
     - [x] Statuses
-    - [ ] Statistics
+    - [x] Statistics
     - [ ] Webhook
     - [ ] Webhooks
   - [ ] Database handler
     - [x] Configuration endpoints
     - [ ] Statistics
     - [ ] Webhooks
-  - [ ] NetspotProcess (WIP)
-  - [ ] NetspotManager (WIP)
+  - [x] NetspotProcess
+  - [x] NetspotManager
     - [x] SocketListener
     - [x] NetspotSocket
-      - [ ] Forwarding received data to exporters via suitable channel
+      - [x] Forwarding received data to exporters via suitable channel
+        - [x] Printing  to stdout in debug build
+        - [ ] Database
+        - [ ] Webhook
     - [x] Status endpoints
   - [ ] Webhooks
     - [ ] Webhook endpoints

@@ -4,6 +4,7 @@ use crate::state::netspots::net::SocketUse;
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
 use crate::structures::status::{ProcessStatus, Status, Statuses};
 
+use crate::structures::statistics::Message;
 use nix::sys::signal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
@@ -31,17 +32,20 @@ pub struct NetspotManager {
 
 impl NetspotManager {
     pub fn new(
+        configurations: NetspotConfigMap,
+        message_tx: broadcast::Sender<Message>,
         shutdown_request_rx: broadcast::Receiver<()>,
         shutdown_complete_tx: mpsc::Sender<()>,
-        configurations: NetspotConfigMap,
     ) -> Result<NetspotManager, String> {
         net::start_listener_task(
             SocketUse::Alarm,
+            message_tx.clone(),
             shutdown_request_rx.resubscribe(),
             shutdown_complete_tx.clone(),
         )?;
         net::start_listener_task(
             SocketUse::Data,
+            message_tx,
             shutdown_request_rx,
             shutdown_complete_tx.clone(),
         )?;

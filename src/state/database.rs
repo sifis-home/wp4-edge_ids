@@ -3,6 +3,7 @@ mod schema;
 
 use crate::state::database::models::NewConfiguration;
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
+use crate::structures::statistics::Message;
 use diesel::prelude::*;
 use diesel::sqlite::Sqlite;
 use diesel::{Connection, SqliteConnection};
@@ -14,6 +15,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{env, fs};
+use tokio::sync::{broadcast, mpsc};
 
 pub enum DatabaseError {
     NotFound,
@@ -25,7 +27,11 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new() -> Result<Database, String> {
+    pub fn new(
+        mut _messages_tx: broadcast::Receiver<Message>,
+        _shutdown_request_rx: broadcast::Receiver<()>,
+        _shutdown_complete_tx: mpsc::Sender<()>,
+    ) -> Result<Database, String> {
         // Read .env file when available
         if dotenv().is_ok() {
             debug!("Loaded environment variables from .env file");
