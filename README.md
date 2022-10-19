@@ -104,7 +104,7 @@ netspot_control
 ## TODO
 
 - [x] OpenAPI specification for the service
-  - [x] Version 0.1.1 done — [yaml](docs/netspot-control-api.yaml) | [json](netspot_control/static/design/openapi.json)
+  - [x] Version 0.1.2 done — [yaml](docs/netspot-control-api.yaml) | [json](netspot_control/static/design/openapi.json)
   - [x] Available from the `netspot_control` service itself
 - [x] Writing `netspot_control` application:
   - [x] Design of program parts and interactions
@@ -118,24 +118,22 @@ netspot_control
     - [ ] Webhooks
   - [ ] Database handler
     - [x] Configuration endpoints
-    - [ ] Statistics
-    - [ ] Webhooks
+    - [ ] Statistics endpoints
+    - [ ] Webhooks endpoints
   - [x] NetspotProcess
   - [x] NetspotManager
     - [x] SocketListener
     - [x] NetspotSocket
       - [x] Forwarding received data to exporters via suitable channel
         - [x] Printing  to stdout in debug build
-        - [ ] Database
+        - [x] Database
         - [ ] Webhook
     - [x] Status endpoints
-  - [ ] Webhooks
-    - [ ] Webhook endpoints
   - [ ] CORS ?
   - [ ] Authorization ?
 - [ ] WP2 Checklist
   - [x] GitHub Action
-    - [ ] Code coverage
+    - [x] Code coverage
     - [ ] Continous delivery
 - [ ] Integration tests
 - [ ] Example scripts

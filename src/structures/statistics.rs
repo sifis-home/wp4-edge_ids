@@ -35,7 +35,7 @@ pub enum Status {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct AlarmMessage {
-    pub time: u64,
+    pub time: i128,
     pub name: String,
     pub series: String,
     pub stat: Stat,
@@ -51,7 +51,7 @@ pub struct AlarmMessage {
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct DataMessage {
     #[serde(rename = "time")]
-    pub time: u64,
+    pub time: i128,
     #[serde(rename = "name")]
     pub name: String,
     #[serde(rename = "series")]
@@ -132,6 +132,19 @@ impl Message {
             Message::Alarm(value) => serde_json::to_string(value),
             Message::Data(value) => serde_json::to_string(value),
         }
+    }
+
+    /// # Return message time as milliseconds since EPOCH
+    ///
+    /// For database and HTTP API, the 128 bit nano second accurate times from the netspot are
+    /// problematic. Therefore, this function returns time in millisecond accuracy, which should
+    /// be enough for our purposes. The accurate time is still kept inside messages.
+    pub fn time(&self) -> i64 {
+        let time_nsec = match self {
+            Message::Alarm(value) => value.time,
+            Message::Data(value) => value.time,
+        };
+        (time_nsec / 1_000_000) as i64
     }
 }
 

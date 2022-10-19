@@ -3,7 +3,7 @@
 diesel::table! {
     alarms (id) {
         id -> Integer,
-        time -> Integer,
+        time -> BigInt,
         message -> Text,
     }
 }
@@ -18,7 +18,7 @@ diesel::table! {
 diesel::table! {
     data (id) {
         id -> Integer,
-        time -> Integer,
+        time -> BigInt,
         message -> Text,
     }
 }

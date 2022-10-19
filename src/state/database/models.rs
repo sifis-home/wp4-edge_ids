@@ -12,3 +12,17 @@ pub struct Configuration {
 pub struct NewConfiguration<'a> {
     pub config: &'a str,
 }
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = alarms)]
+pub struct NewAlarms<'a> {
+    pub time: i64,
+    pub message: &'a str,
+}
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = data)]
+pub struct NewData<'a> {
+    pub time: i64,
+    pub message: &'a str,
+}

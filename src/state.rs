@@ -26,17 +26,16 @@ impl NetspotControlState {
 
         // Printing received messages on debug build
         #[cfg(debug_assertions)]
-        tokio::spawn(message_printer(messages_tx.subscribe()));
+        tokio::spawn(message_printer(
+            messages_tx.subscribe(),
+            shutdown_complete_tx.clone(),
+        ));
 
         // Create shutdown request channel
         let (shutdown_request_tx, _) = broadcast::channel(1);
 
         // Database has worker task for writing messages to the database.
-        let database = Database::new(
-            messages_tx.subscribe(),
-            shutdown_request_tx.subscribe(),
-            shutdown_complete_tx.clone(),
-        )?;
+        let database = Database::new(messages_tx.subscribe(), shutdown_complete_tx.clone())?;
 
         // Netspot manager has worker tasks for receiving messages from netspot processes
         let netspots = NetspotManager::new(
@@ -65,7 +64,11 @@ impl NetspotControlState {
 }
 
 #[cfg(debug_assertions)]
-async fn message_printer(mut message_rx: broadcast::Receiver<Message>) {
+async fn message_printer(
+    mut message_rx: broadcast::Receiver<Message>,
+    _shutdown_complete_tx: mpsc::Sender<()>,
+) {
+    println!("Message printer started.");
     use termion::{color, style};
     while let Ok(message) = message_rx.recv().await {
         if let Ok(json) = message.to_json() {
@@ -84,4 +87,5 @@ async fn message_printer(mut message_rx: broadcast::Receiver<Message>) {
             }
         }
     }
+    println!("Message printer stopped.")
 }

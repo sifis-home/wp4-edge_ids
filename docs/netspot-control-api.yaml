@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 0.1.1
+  version: 0.1.2
   title: Netspot Control API
   description: >-
     ## Welcome to Netspot Control API documentation
@@ -35,18 +35,18 @@ info:
     </table>
 
 
-    For a quick start, you can check the status of netspot services. A default
+    For a quick start, we can check the status of netspot services. A default
     netspot configuration is provided for new installations and should be
     running already.
 
 
-    Next, you could try to read statistics. Data statistics contain analysis
+    Next, we could try to read statistics. Data statistics contain analysis
     results, while alarms are for detected anomalies. Please note that the
     alarms database can be empty and thus return an empty array.
 
 
-    Then you may want to start forwarding live updates to your service using
-    webhooks. Or you can start learning how to configure netspot services or
+    Then we may want to start forwarding live updates to our service using
+    webhooks. Or we can start learning how to configure netspot services or
     even create new ones for custom purposes.
 servers:
   - url: 'http://localhost:8000/v1'
@@ -233,7 +233,7 @@ paths:
         Reads recorded nestpot statistics.
 
 
-        You can use parameters to limit which results are returned. Without
+        We can use parameters to limit which results are returned. Without
         parameters, only 100 last items are returned.
       parameters:
         - $ref: '#/components/parameters/Timestamp'
@@ -287,7 +287,7 @@ paths:
         Reads recorded alarms from nestpot statistics.
 
 
-        You can use parameters to limit which results are returned. Without
+        We can use parameters to limit which results are returned. Without
         parameters, only 100 last items are returned.
       parameters:
         - $ref: '#/components/parameters/Timestamp'
@@ -530,8 +530,12 @@ components:
     Timestamp:
       name: time
       description: >-
-        Unix timestamp in nanoseconds. You can use the last timestamp from the
+        Unix timestamp in milliseconds. We can use the last timestamp from the
         previous request to get only new items.
+
+
+        **Note:** Results have timestamps in nanoseconds accuracy. Convert time to
+        milliseconds before using this endpoint.
       in: query
       required: false
       schema:

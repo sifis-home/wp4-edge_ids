@@ -172,11 +172,14 @@ impl NetspotProcess {
     }
 
     fn process_status(&self) -> ProcessStatus {
-        if !self.config.configuration.enabled {
-            return ProcessStatus::Disabled;
-        }
         match self.process {
-            None => ProcessStatus::Stopped,
+            None => {
+                if !self.config.configuration.enabled {
+                    ProcessStatus::Disabled
+                } else {
+                    ProcessStatus::Stopped
+                }
+            }
             Some(_) => ProcessStatus::Running,
         }
     }

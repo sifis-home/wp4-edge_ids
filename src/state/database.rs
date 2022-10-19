@@ -1,9 +1,10 @@
 mod models;
 mod schema;
 
-use crate::state::database::models::NewConfiguration;
+use crate::state::database::models::{NewAlarms, NewConfiguration, NewData};
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
 use crate::structures::statistics::Message;
+
 use diesel::prelude::*;
 use diesel::sqlite::Sqlite;
 use diesel::{Connection, SqliteConnection};
@@ -13,7 +14,8 @@ use rocket::{debug, warn};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime};
 use std::{env, fs};
 use tokio::sync::{broadcast, mpsc};
 
@@ -22,15 +24,16 @@ pub enum DatabaseError {
     Unexpected(String),
 }
 
+type DbConnection = Arc<Mutex<SqliteConnection>>;
+
 pub struct Database {
-    connection_mutex: Mutex<SqliteConnection>, // TODO: Check if RwLock could be used here
+    db_connection: DbConnection, // TODO: Check if RwLock could be used here
 }
 
 impl Database {
     pub fn new(
-        mut _messages_tx: broadcast::Receiver<Message>,
-        _shutdown_request_rx: broadcast::Receiver<()>,
-        _shutdown_complete_tx: mpsc::Sender<()>,
+        messages_rx: broadcast::Receiver<Message>,
+        shutdown_complete_tx: mpsc::Sender<()>,
     ) -> Result<Database, String> {
         // Read .env file when available
         if dotenv().is_ok() {
@@ -68,10 +71,18 @@ impl Database {
             return Err(format!("Could not run migrations: {}", err));
         }
 
+        // Create shared connection object
+        let db_connection = Arc::new(Mutex::new(connection));
+
+        // Start task for writing incoming messages to the database
+        tokio::spawn(database_writer(
+            db_connection.clone(),
+            messages_rx,
+            shutdown_complete_tx,
+        ));
+
         // Return complete database
-        Ok(Database {
-            connection_mutex: Mutex::new(connection),
-        })
+        Ok(Database { db_connection })
     }
 
     pub fn add_configuration(&self, new_config: &NetspotConfig) -> Result<(), String> {
@@ -79,7 +90,7 @@ impl Database {
             Ok(value) => {
                 // We have JSON for the new config
                 let new_configuration = NewConfiguration { config: &value };
-                let mut connection = self.connection_mutex.lock().unwrap();
+                let mut connection = self.db_connection.lock().unwrap();
                 match diesel::insert_into(schema::configurations::dsl::configurations)
                     .values(new_configuration)
                     .execute(&mut *connection)
@@ -94,7 +105,7 @@ impl Database {
     }
 
     pub fn get_configuration(&self, with_id: i32) -> Option<NetspotConfig> {
-        let mut connection = self.connection_mutex.lock().unwrap();
+        let mut connection = self.db_connection.lock().unwrap();
         match schema::configurations::dsl::configurations
             .filter(schema::configurations::id.eq(with_id))
             .load::<models::Configuration>(&mut *connection)
@@ -110,7 +121,7 @@ impl Database {
     }
 
     pub fn delete_configuration(&self, with_id: i32) -> Result<(), DatabaseError> {
-        let mut connection = self.connection_mutex.lock().unwrap();
+        let mut connection = self.db_connection.lock().unwrap();
         match diesel::delete(
             schema::configurations::dsl::configurations
                 .filter(schema::configurations::id.eq(with_id)),
@@ -136,7 +147,7 @@ impl Database {
             Ok(value) => {
                 // We have JSON for the new config
                 let new_configuration = NewConfiguration { config: &value };
-                let mut connection = self.connection_mutex.lock().unwrap();
+                let mut connection = self.db_connection.lock().unwrap();
                 match diesel::update(schema::configurations::dsl::configurations)
                     .filter(schema::configurations::id.eq(with_id))
                     .set(new_configuration)
@@ -159,7 +170,7 @@ impl Database {
     }
 
     pub fn get_configurations(&self) -> Result<NetspotConfigMap, String> {
-        let mut connection = self.connection_mutex.lock().unwrap();
+        let mut connection = self.db_connection.lock().unwrap();
         match schema::configurations::dsl::configurations
             .load::<models::Configuration>(&mut *connection)
         {
@@ -191,4 +202,88 @@ impl Database {
         connection.run_pending_migrations(MIGRATIONS)?;
         Ok(())
     }
+}
+
+async fn database_writer(
+    db_connection: DbConnection,
+    mut message_rx: broadcast::Receiver<Message>,
+    _shutdown_complete_tx: mpsc::Sender<()>,
+) {
+    println!("Database writer started.");
+
+    // We run clean up routine in about one minute intervals
+    let mut timer = Instant::now();
+    let cleanup_after = Duration::from_secs(60);
+
+    // TODO: Collect multiple messages of and write them at once
+    while let Ok(message) = message_rx.recv().await {
+        let time = message.time();
+        if let Ok(json) = message.to_json() {
+            match message {
+                Message::Alarm(_) => {
+                    write_alarms(&db_connection, time, &json);
+                }
+                Message::Data(_) => {
+                    write_data(&db_connection, time, &json);
+                }
+            }
+            if timer.elapsed() > cleanup_after {
+                timer = Instant::now();
+                cleanup_messages(&db_connection);
+            }
+        }
+    }
+    println!("Database writer stopped.");
+}
+
+fn cleanup_messages(db_connection: &DbConnection) {
+    match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(duration) => {
+            // We remove all results that are older than one hour
+            let older_than = (duration - Duration::from_secs(60 * 60)).as_millis() as i64;
+            println!("Cleaning messages older than {}", older_than);
+            let mut connection = db_connection.lock().unwrap();
+            match diesel::delete(schema::alarms::dsl::alarms)
+                .filter(schema::alarms::time.lt(older_than))
+                .execute(&mut *connection)
+            {
+                Ok(rows) => println!("{rows} alarms message(s) removed"),
+                Err(err) => eprintln!("cleanup_messages error: {}", err),
+            };
+            match diesel::delete(schema::data::dsl::data)
+                .filter(schema::data::time.lt(older_than))
+                .execute(&mut *connection)
+            {
+                Ok(rows) => println!("{rows} data message(s) removed"),
+                Err(err) => eprintln!("cleanup_messages error: {}", err),
+            };
+        }
+        Err(err) => {
+            eprintln!("Unexpected error: {}", err);
+        }
+    }
+}
+
+fn write_alarms(db_connection: &DbConnection, time: i64, message: &str) {
+    let new_alarms = NewAlarms { time, message };
+    let mut connection = db_connection.lock().unwrap();
+    match diesel::insert_into(schema::alarms::dsl::alarms)
+        .values(new_alarms)
+        .execute(&mut *connection)
+    {
+        Ok(_) => (),
+        Err(err) => eprintln!("write_alarms error: {}", err),
+    };
+}
+
+fn write_data(db_connection: &DbConnection, time: i64, message: &str) {
+    let new_data = NewData { time, message };
+    let mut connection = db_connection.lock().unwrap();
+    match diesel::insert_into(schema::data::dsl::data)
+        .values(new_data)
+        .execute(&mut *connection)
+    {
+        Ok(_) => (),
+        Err(err) => eprintln!("write_data error: {}", err),
+    };
 }
