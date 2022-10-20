@@ -27,7 +27,7 @@ pub enum Stat {
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum Status {
+pub enum AlertStatus {
     #[default]
     DownAlert,
     UpAlert,
@@ -35,11 +35,11 @@ pub enum Status {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct AlarmMessage {
-    pub time: i128,
+    pub time: i64,
     pub name: String,
     pub series: String,
     pub stat: Stat,
-    pub status: Status,
+    pub status: AlertStatus,
     pub value: f64,
     pub probability: f64,
     pub code: i32,
@@ -47,11 +47,13 @@ pub struct AlarmMessage {
     pub msg_type: MessageType,
 }
 
+pub type AlarmMessages = Vec<AlarmMessage>;
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct DataMessage {
     #[serde(rename = "time")]
-    pub time: i128,
+    pub time: i64,
     #[serde(rename = "name")]
     pub name: String,
     #[serde(rename = "series")]
@@ -120,6 +122,8 @@ pub struct DataMessage {
     pub msg_type: MessageType,
 }
 
+pub type DataMessages = Vec<DataMessage>;
+
 #[derive(Clone, Debug)]
 pub enum Message {
     Alarm(Box<AlarmMessage>),
@@ -132,19 +136,6 @@ impl Message {
             Message::Alarm(value) => serde_json::to_string(value),
             Message::Data(value) => serde_json::to_string(value),
         }
-    }
-
-    /// # Return message time as milliseconds since EPOCH
-    ///
-    /// For database and HTTP API, the 128 bit nano second accurate times from the netspot are
-    /// problematic. Therefore, this function returns time in millisecond accuracy, which should
-    /// be enough for our purposes. The accurate time is still kept inside messages.
-    pub fn time(&self) -> i64 {
-        let time_nsec = match self {
-            Message::Alarm(value) => value.time,
-            Message::Data(value) => value.time,
-        };
-        (time_nsec / 1_000_000) as i64
     }
 }
 
@@ -187,7 +178,7 @@ mod tests {
     #[test]
     fn status() {
         // These should be presented as a screaming snake case string
-        let test = vec![Status::DownAlert, Status::UpAlert];
+        let test = vec![AlertStatus::DownAlert, AlertStatus::UpAlert];
         let json = serde_json::to_string(&test).unwrap();
         let expected = r#"["DOWN_ALERT","UP_ALERT"]"#;
         assert_eq!(json, expected);
@@ -214,7 +205,7 @@ mod tests {
         assert_eq!(alarm.name, "Example");
         assert_eq!(alarm.series, "any-Oct-18-09:18:16.505");
         assert_eq!(alarm.stat, Stat::RIcmp);
-        assert_eq!(alarm.status, Status::UpAlert);
+        assert_eq!(alarm.status, AlertStatus::UpAlert);
         assert_eq!(alarm.value, 0.5);
         assert_eq!(alarm.probability, 0.0);
         assert_eq!(alarm.code, 1);
@@ -228,7 +219,7 @@ mod tests {
             name: "Example".to_string(),
             series: "Series".to_string(),
             stat: Stat::AvgPktSize,
-            status: Status::DownAlert,
+            status: AlertStatus::DownAlert,
             value: 1.0,
             probability: 0.5,
             code: 1,
@@ -361,7 +352,7 @@ mod tests {
             name: "AlarmName".to_string(),
             series: "AlarmSeries".to_string(),
             stat: Stat::AvgPktSize,
-            status: Status::UpAlert,
+            status: AlertStatus::UpAlert,
             value: 2.0,
             probability: 3.0,
             code: 4,

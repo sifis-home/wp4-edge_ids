@@ -3,7 +3,7 @@
   "info" : {
     "description" : "## Welcome to Netspot Control API documentation\n\nThe API is divided into the following sections:\n\n<table>\n  <tr><th>Section</th><th>Description</th></tr>\n  <tr>\n    <td>Status</td>\n    <td>For controlling netspot services statuses</td>\n  </tr>\n  <tr>\n    <td>Statistics</td>\n    <td>For reading recorded statistics and alarms.</td>\n  </tr>\n  <tr>\n    <td>Configuration</td>\n    <td>For handling netpost configurations.</td>\n  </tr>\n  <tr>\n    <td>Network</td>\n    <td>For providing information about network interfaces in the\n    host system. This information is needed for netspot configuration.</td>\n  </tr>\n  <tr>\n    <td>Webhooks</td>\n    <td>For configuring callbacks for live updates.</td>\n  </tr>\n</table>\n\nFor a quick start, we can check the status of netspot services. A default netspot configuration is provided for new installations and should be running already.\n\nNext, we could try to read statistics. Data statistics contain analysis results, while alarms are for detected anomalies. Please note that the alarms database can be empty and thus return an empty array.\n\nThen we may want to start forwarding live updates to our service using webhooks. Or we can start learning how to configure netspot services or even create new ones for custom purposes.",
     "title" : "Netspot Control API",
-    "version" : "0.1.2"
+    "version" : "0.1.3"
   },
   "servers" : [ {
     "url" : "http://localhost:8000/v1"
@@ -293,7 +293,7 @@
       "get" : {
         "description" : "Reads recorded nestpot statistics.\n\nWe can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
         "parameters" : [ {
-          "description" : "Unix timestamp in milliseconds. We can use the last timestamp from the previous request to get only new items.\n\n**Note:** Results have timestamps in nanoseconds accuracy. Convert time to milliseconds before using this endpoint.",
+          "description" : "Unix timestamp in nanoseconds. We can use the last timestamp from the previous request to get only new items after the timestamp.",
           "explode" : true,
           "in" : "query",
           "name" : "time",
@@ -369,7 +369,7 @@
       "get" : {
         "description" : "Reads recorded alarms from nestpot statistics.\n\nWe can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
         "parameters" : [ {
-          "description" : "Unix timestamp in milliseconds. We can use the last timestamp from the previous request to get only new items.\n\n**Note:** Results have timestamps in nanoseconds accuracy. Convert time to milliseconds before using this endpoint.",
+          "description" : "Unix timestamp in nanoseconds. We can use the last timestamp from the previous request to get only new items after the timestamp.",
           "explode" : true,
           "in" : "query",
           "name" : "time",
@@ -751,7 +751,7 @@
         "style" : "simple"
       },
       "Timestamp" : {
-        "description" : "Unix timestamp in milliseconds. We can use the last timestamp from the previous request to get only new items.\n\n**Note:** Results have timestamps in nanoseconds accuracy. Convert time to milliseconds before using this endpoint.",
+        "description" : "Unix timestamp in nanoseconds. We can use the last timestamp from the previous request to get only new items after the timestamp.",
         "explode" : true,
         "in" : "query",
         "name" : "time",

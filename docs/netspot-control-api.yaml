@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: 0.1.2
+  version: 0.1.3
   title: Netspot Control API
   description: >-
     ## Welcome to Netspot Control API documentation
@@ -530,12 +530,8 @@ components:
     Timestamp:
       name: time
       description: >-
-        Unix timestamp in milliseconds. We can use the last timestamp from the
-        previous request to get only new items.
-
-
-        **Note:** Results have timestamps in nanoseconds accuracy. Convert time to
-        milliseconds before using this endpoint.
+        Unix timestamp in nanoseconds. We can use the last timestamp from the
+        previous request to get only new items after the timestamp.
       in: query
       required: false
       schema:

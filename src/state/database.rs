@@ -3,7 +3,9 @@ mod schema;
 
 use crate::state::database::models::{NewAlarms, NewConfiguration, NewData};
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
-use crate::structures::statistics::Message;
+use crate::structures::statistics::{
+    AlarmMessage, AlarmMessages, DataMessage, DataMessages, Message,
+};
 
 use diesel::prelude::*;
 use diesel::sqlite::Sqlite;
@@ -104,6 +106,88 @@ impl Database {
         }
     }
 
+    pub fn delete_configuration(&self, with_id: i32) -> Result<(), DatabaseError> {
+        let mut connection = self.db_connection.lock().unwrap();
+        match diesel::delete(
+            schema::configurations::dsl::configurations
+                .filter(schema::configurations::id.eq(with_id)),
+        )
+        .execute(&mut *connection)
+        {
+            Ok(0) => Err(DatabaseError::NotFound),
+            Ok(1) => Ok(()),
+            Err(err) => Err(DatabaseError::Unexpected(err.to_string())),
+            Ok(rows) => Err(DatabaseError::Unexpected(format!(
+                "Unexpected row delete count: {}",
+                rows
+            ))),
+        }
+    }
+
+    pub fn get_alarms(
+        &self,
+        time: Option<i64>,
+        last: Option<i32>,
+    ) -> Result<AlarmMessages, DatabaseError> {
+        let mut query = schema::alarms::dsl::alarms
+            .select(schema::alarms::message)
+            .into_boxed();
+        if let Some(time) = time {
+            query = query.filter(schema::alarms::time.gt(time));
+        }
+        if let Some(last) = last {
+            query = query.order(schema::alarms::time.desc()).limit(last.into())
+        }
+        let mut connection = self.db_connection.lock().unwrap();
+        match query.load::<String>(&mut *connection) {
+            Ok(rows) => {
+                let mut results = AlarmMessages::new();
+                for row in rows {
+                    if let Ok(message) = serde_json::from_str::<AlarmMessage>(&row) {
+                        results.push(message);
+                    }
+                }
+                if last.is_some() {
+                    results.reverse();
+                }
+                Ok(results)
+            }
+            Err(err) => Err(DatabaseError::Unexpected(err.to_string())),
+        }
+    }
+
+    pub fn get_data(
+        &self,
+        time: Option<i64>,
+        last: Option<i32>,
+    ) -> Result<DataMessages, DatabaseError> {
+        let mut query = schema::data::dsl::data
+            .select(schema::data::message)
+            .into_boxed();
+        if let Some(time) = time {
+            query = query.filter(schema::data::time.gt(time));
+        }
+        if let Some(last) = last {
+            query = query.order(schema::data::time.desc()).limit(last.into())
+        }
+        let mut connection = self.db_connection.lock().unwrap();
+        match query.load::<String>(&mut *connection) {
+            Ok(rows) => {
+                let mut results = DataMessages::new();
+                for row in rows {
+                    if let Ok(message) = serde_json::from_str::<DataMessage>(&row) {
+                        results.push(message);
+                    }
+                }
+                if last.is_some() {
+                    results.reverse();
+                }
+                Ok(results)
+            }
+            Err(err) => Err(DatabaseError::Unexpected(err.to_string())),
+        }
+    }
+
     pub fn get_configuration(&self, with_id: i32) -> Option<NetspotConfig> {
         let mut connection = self.db_connection.lock().unwrap();
         match schema::configurations::dsl::configurations
@@ -120,21 +204,29 @@ impl Database {
         None
     }
 
-    pub fn delete_configuration(&self, with_id: i32) -> Result<(), DatabaseError> {
+    pub fn get_configurations(&self) -> Result<NetspotConfigMap, String> {
         let mut connection = self.db_connection.lock().unwrap();
-        match diesel::delete(
-            schema::configurations::dsl::configurations
-                .filter(schema::configurations::id.eq(with_id)),
-        )
-        .execute(&mut *connection)
+        match schema::configurations::dsl::configurations
+            .load::<models::Configuration>(&mut *connection)
         {
-            Ok(0) => Err(DatabaseError::NotFound),
-            Ok(1) => Ok(()),
-            Err(err) => Err(DatabaseError::Unexpected(err.to_string())),
-            Ok(rows) => Err(DatabaseError::Unexpected(format!(
-                "Unexpected row delete count: {}",
-                rows
-            ))),
+            Ok(results) => {
+                let mut netspot_configurations = HashMap::new();
+                for result in results {
+                    match serde_json::from_str::<NetspotConfig>(&result.config) {
+                        Ok(v) => {
+                            netspot_configurations.insert(result.id, v);
+                        }
+                        Err(err) => {
+                            return Err(format!(
+                                "Parsing configuration {} failed: {}",
+                                result.id, err
+                            ));
+                        }
+                    }
+                }
+                Ok(netspot_configurations)
+            }
+            Err(err) => Err(format!("Query failed: {}", err)),
         }
     }
 
@@ -169,32 +261,6 @@ impl Database {
         }
     }
 
-    pub fn get_configurations(&self) -> Result<NetspotConfigMap, String> {
-        let mut connection = self.db_connection.lock().unwrap();
-        match schema::configurations::dsl::configurations
-            .load::<models::Configuration>(&mut *connection)
-        {
-            Ok(results) => {
-                let mut netspot_configurations = HashMap::new();
-                for result in results {
-                    match serde_json::from_str::<NetspotConfig>(&result.config) {
-                        Ok(v) => {
-                            netspot_configurations.insert(result.id, v);
-                        }
-                        Err(err) => {
-                            return Err(format!(
-                                "Parsing configuration {} failed: {}",
-                                result.id, err
-                            ));
-                        }
-                    }
-                }
-                Ok(netspot_configurations)
-            }
-            Err(err) => Err(format!("Query failed: {}", err)),
-        }
-    }
-
     fn run_migrations(
         connection: &mut impl MigrationHarness<Sqlite>,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
@@ -217,14 +283,13 @@ async fn database_writer(
 
     // TODO: Collect multiple messages of and write them at once
     while let Ok(message) = message_rx.recv().await {
-        let time = message.time();
         if let Ok(json) = message.to_json() {
             match message {
-                Message::Alarm(_) => {
-                    write_alarms(&db_connection, time, &json);
+                Message::Alarm(message) => {
+                    write_alarms(&db_connection, message.time, &json);
                 }
-                Message::Data(_) => {
-                    write_data(&db_connection, time, &json);
+                Message::Data(message) => {
+                    write_data(&db_connection, message.time, &json);
                 }
             }
             if timer.elapsed() > cleanup_after {
@@ -240,7 +305,7 @@ fn cleanup_messages(db_connection: &DbConnection) {
     match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
         Ok(duration) => {
             // We remove all results that are older than one hour
-            let older_than = (duration - Duration::from_secs(60 * 60)).as_millis() as i64;
+            let older_than = (duration - Duration::from_secs(60 * 60)).as_nanos() as i64;
             println!("Cleaning messages older than {}", older_than);
             let mut connection = db_connection.lock().unwrap();
             match diesel::delete(schema::alarms::dsl::alarms)
