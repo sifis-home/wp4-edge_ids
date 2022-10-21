@@ -101,6 +101,22 @@ docker run --detach --name=netspot_control --cap-add=NET_ADMIN --network=host \
 netspot_control
 ```
 
+### Show netspot messages
+
+By default, netspot statistic messages are not printed to standard output. However, this feature can be enabled with the SHOW_NETSPOT_MESSAGES environment variable. Add the following to the docker command to enable the output: `--env=SHOW_NETSPOT_MESSAGES=1`
+
+We can now see messages from the containers log:
+
+```bash
+docker logs netspot_control
+```
+
+Adding a `--follow` keeps printing the output from the container. Press Ctrl+C to stop.
+
+```bash
+docker logs netspot_control --follow
+```
+
 ## TODO
 
 - [x] OpenAPI specification for the service

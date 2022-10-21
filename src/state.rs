@@ -70,7 +70,6 @@ impl NetspotControlState {
     }
 }
 
-#[cfg(debug_assertions)]
 async fn message_printer(
     mut message_rx: broadcast::Receiver<Message>,
     _shutdown_complete_tx: mpsc::Sender<()>,
