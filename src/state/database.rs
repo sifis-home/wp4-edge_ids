@@ -11,8 +11,7 @@ use diesel::prelude::*;
 use diesel::sqlite::Sqlite;
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use dotenv::dotenv;
-use rocket::{debug, warn};
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
@@ -26,10 +25,11 @@ pub enum DatabaseError {
     Unexpected(String),
 }
 
+// TODO: Check if RwLock could be used here
 type DbConnection = Arc<Mutex<SqliteConnection>>;
 
 pub struct Database {
-    db_connection: DbConnection, // TODO: Check if RwLock could be used here
+    db_connection: DbConnection,
 }
 
 impl Database {
@@ -37,11 +37,6 @@ impl Database {
         messages_rx: broadcast::Receiver<Message>,
         shutdown_complete_tx: mpsc::Sender<()>,
     ) -> Result<Database, String> {
-        // Read .env file when available
-        if dotenv().is_ok() {
-            debug!("Loaded environment variables from .env file");
-        }
-
         // Get database path
         let database_file = match env::var("DB_FILE_PATH") {
             Ok(path) => path,
@@ -73,7 +68,7 @@ impl Database {
             return Err(format!("Could not run migrations: {}", err));
         }
 
-        // Create shared connection object
+        // Create shared database connection object
         let db_connection = Arc::new(Mutex::new(connection));
 
         // Start task for writing incoming messages to the database
@@ -199,7 +194,7 @@ impl Database {
                     return serde_json::from_str(&result.config).ok();
                 }
             }
-            Err(err) => warn!("Query failed: {}", err.to_string()),
+            Err(err) => eprintln!("Query failed: {}", err),
         }
         None
     }

@@ -4,6 +4,7 @@ pub mod netspots;
 use crate::structures::statistics::Message;
 use database::Database;
 use netspots::NetspotManager;
+use std::env;
 use tokio::sync::{broadcast, mpsc};
 
 // Netspot Control State
@@ -24,12 +25,18 @@ impl NetspotControlState {
         // Create channels for broadcasting data and alarm messages
         let (messages_tx, _) = broadcast::channel::<Message>(16);
 
-        // Printing received messages on debug build
-        #[cfg(debug_assertions)]
-        tokio::spawn(message_printer(
-            messages_tx.subscribe(),
-            shutdown_complete_tx.clone(),
-        ));
+        // Check if SHOW_NETSPOT_MESSAGES environment variable is set
+        if let Ok(value) = env::var("SHOW_NETSPOT_MESSAGES") {
+            if let Ok(value) = value.parse::<i32>() {
+                if value != 0 {
+                    // Printing received messages to stdout
+                    tokio::spawn(message_printer(
+                        messages_tx.subscribe(),
+                        shutdown_complete_tx.clone(),
+                    ));
+                }
+            }
+        };
 
         // Create shutdown request channel
         let (shutdown_request_tx, _) = broadcast::channel(1);

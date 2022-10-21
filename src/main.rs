@@ -3,6 +3,7 @@ mod state;
 mod structures;
 
 use crate::state::NetspotControlState;
+use dotenv::dotenv;
 use rocket::fs::{relative, FileServer};
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
@@ -11,6 +12,11 @@ use tokio::sync::mpsc;
 
 #[rocket::main]
 async fn main() {
+    // Read .env file when available
+    if dotenv().is_ok() {
+        println!("Loaded environment variables from .env file");
+    }
+
     // Prepare configuration for API documentation.
     let rapidoc_config = RapiDocConfig {
         title: Some("Netspot Control Service | API Documentation".to_string()),
