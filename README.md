@@ -12,6 +12,9 @@ Below is initial plans for the service.
 
 * *db – database location, when developing, can be changed from the .env file*
 * docs – Documentation and plans
+* examples – Example clients
+  * python – Simple example for making request with Python 
+
 * migrations – Diesel migration scripts for the database schema
 * src – Netspot Control service source files
   * api_v1 – Source files for the HTTP API version 1.x.x (and also 0.x.x while still in development)
@@ -124,14 +127,14 @@ docker logs netspot_control --follow
   - [x] Available from the `netspot_control` service itself
 - [x] Writing `netspot_control` application:
   - [x] Design of program parts and interactions
-  - [ ] Structures
+  - [x] Structures
     - [x] Netspot configuration
       - [x] Making TOML configuration for netspot
     - [x] Status
     - [x] Statuses
     - [x] Statistics
-    - [ ] Webhook
-    - [ ] Webhooks
+    - [x] Webhook
+    - [x] Webhooks
   - [ ] Database handler
     - [x] Configuration endpoints
     - [x] Statistics endpoints

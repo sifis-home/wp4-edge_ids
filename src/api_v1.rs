@@ -2,6 +2,7 @@ pub mod configuration;
 pub mod network;
 pub mod statistics;
 pub mod status;
+pub mod webhooks;
 
 use rocket_okapi::openapi_get_routes;
 
@@ -22,5 +23,10 @@ pub fn routes() -> Vec<rocket::Route> {
         configuration::netspot_put,
         configuration::netspot_delete,
         network::interfaces,
+        webhooks::webhooks_list,
+        webhooks::webhook_add,
+        webhooks::webhook_get,
+        webhooks::webhook_put,
+        webhooks::webhook_delete,
     ]
 }
