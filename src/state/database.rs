@@ -1,7 +1,7 @@
 mod models;
 mod schema;
 
-use crate::state::database::models::{NewAlarms, NewConfiguration, NewData};
+use crate::state::database::models::{NewAlarms, NewConfiguration, NewData, NewWebhook};
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
 use crate::structures::statistics::{
     AlarmMessage, AlarmMessages, DataMessage, DataMessages, Message,
@@ -12,6 +12,7 @@ use diesel::sqlite::Sqlite;
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
+use crate::structures::webhooks::{Webhook, WebhookItem, Webhooks};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
@@ -101,11 +102,48 @@ impl Database {
         }
     }
 
+    pub fn add_webhook(&self, new_webhook: &Webhook) -> Result<(), String> {
+        match serde_json::to_string(&new_webhook) {
+            Ok(webhook_config) => {
+                let new_webhook = NewWebhook {
+                    config: &webhook_config,
+                };
+                let mut connection = self.db_connection.lock().unwrap();
+                match diesel::insert_into(schema::webhooks::dsl::webhooks)
+                    .values(new_webhook)
+                    .execute(&mut *connection)
+                {
+                    Ok(1) => Ok(()),
+                    Err(err) => Err(err.to_string()),
+                    Ok(rows) => Err(format!("Unexpected row write count: {}", rows)),
+                }
+            }
+            Err(err) => Err(format!("Could not convert Webhook to JSON: {}", err)),
+        }
+    }
+
     pub fn delete_configuration(&self, with_id: i32) -> Result<(), DatabaseError> {
         let mut connection = self.db_connection.lock().unwrap();
         match diesel::delete(
             schema::configurations::dsl::configurations
                 .filter(schema::configurations::id.eq(with_id)),
+        )
+        .execute(&mut *connection)
+        {
+            Ok(0) => Err(DatabaseError::NotFound),
+            Ok(1) => Ok(()),
+            Err(err) => Err(DatabaseError::Unexpected(err.to_string())),
+            Ok(rows) => Err(DatabaseError::Unexpected(format!(
+                "Unexpected row delete count: {}",
+                rows
+            ))),
+        }
+    }
+
+    pub fn delete_webhook(&self, with_id: i32) -> Result<(), DatabaseError> {
+        let mut connection = self.db_connection.lock().unwrap();
+        match diesel::delete(
+            schema::webhooks::dsl::webhooks.filter(schema::webhooks::id.eq(with_id)),
         )
         .execute(&mut *connection)
         {
@@ -225,6 +263,49 @@ impl Database {
         }
     }
 
+    pub fn get_webhook(&self, with_id: i32) -> Option<Webhook> {
+        let mut connection = self.db_connection.lock().unwrap();
+        match schema::webhooks::dsl::webhooks
+            .filter(schema::webhooks::id.eq(with_id))
+            .load::<models::Configuration>(&mut *connection)
+        {
+            Ok(results) => {
+                if let Some(result) = results.get(0) {
+                    return serde_json::from_str(&result.config).ok();
+                }
+            }
+            Err(err) => eprintln!("Query failed: {}", err),
+        }
+        None
+    }
+
+    pub fn list_webhooks(&self) -> Result<Webhooks, String> {
+        let mut connection = self.db_connection.lock().unwrap();
+        match schema::webhooks::dsl::webhooks.load::<models::Configuration>(&mut *connection) {
+            Ok(results) => {
+                let mut webhooks = Webhooks::new();
+                for result in results {
+                    match serde_json::from_str::<Webhook>(&result.config) {
+                        Ok(hook) => {
+                            webhooks.push(WebhookItem {
+                                id: result.id,
+                                name: hook.name,
+                            });
+                        }
+                        Err(err) => {
+                            return Err(format!(
+                                "Parsing configuration {} failed: {}",
+                                result.id, err
+                            ));
+                        }
+                    }
+                }
+                Ok(webhooks)
+            }
+            Err(err) => Err(format!("Query failed: {}", err)),
+        }
+    }
+
     pub fn set_configuration(
         &self,
         with_id: i32,
@@ -238,6 +319,34 @@ impl Database {
                 match diesel::update(schema::configurations::dsl::configurations)
                     .filter(schema::configurations::id.eq(with_id))
                     .set(new_configuration)
+                    .execute(&mut *connection)
+                {
+                    Ok(0) => Err(DatabaseError::NotFound),
+                    Ok(1) => Ok(()),
+                    Err(err) => Err(DatabaseError::Unexpected(err.to_string())),
+                    Ok(rows) => Err(DatabaseError::Unexpected(format!(
+                        "Unexpected row update count: {}",
+                        rows
+                    ))),
+                }
+            }
+            Err(err) => Err(DatabaseError::Unexpected(format!(
+                "Could not convert NetspotConfig to JSON: {}",
+                err
+            ))),
+        }
+    }
+
+    pub fn set_webhook(&self, with_id: i32, new_config: &Webhook) -> Result<(), DatabaseError> {
+        match serde_json::to_string(&new_config) {
+            Ok(config_json) => {
+                let new_config = NewWebhook {
+                    config: &config_json,
+                };
+                let mut connection = self.db_connection.lock().unwrap();
+                match diesel::update(schema::webhooks::dsl::webhooks)
+                    .filter(schema::webhooks::id.eq(with_id))
+                    .set(new_config)
                     .execute(&mut *connection)
                 {
                     Ok(0) => Err(DatabaseError::NotFound),

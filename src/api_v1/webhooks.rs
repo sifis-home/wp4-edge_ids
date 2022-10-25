@@ -1,3 +1,4 @@
+use crate::state::database::DatabaseError;
 use crate::state::NetspotControlState;
 use crate::structures::webhooks::{Webhook, Webhooks};
 use rocket::http::Status;
@@ -11,10 +12,12 @@ use rocket_okapi::openapi;
 #[openapi(tag = "Webhooks")]
 #[post("/netspots/webhook", data = "<new_hook>")]
 pub async fn webhook_add(
-    _state: &State<NetspotControlState>,
+    state: &State<NetspotControlState>,
     new_hook: Json<Webhook>,
 ) -> Result<Status, Status> {
-    println!("webhook_add: {:#?}", new_hook);
+    if state.database.add_webhook(&*new_hook).is_ok() {
+        return Ok(Status::Created);
+    }
     Err(Status::BadRequest)
 }
 
@@ -24,11 +27,16 @@ pub async fn webhook_add(
 #[openapi(tag = "Webhooks")]
 #[get("/netspots/webhook/<id>")]
 pub async fn webhook_get(
-    _state: &State<NetspotControlState>,
+    state: &State<NetspotControlState>,
     id: Result<i32, &str>,
 ) -> Result<Option<Json<Webhook>>, Status> {
-    println!("webhook_get: {:?}", id);
-    Ok(None)
+    match id {
+        Ok(id) => match state.database.get_webhook(id) {
+            Some(hook) => Ok(Some(Json(hook))),
+            None => Ok(None),
+        },
+        Err(_) => Err(Status::BadRequest),
+    }
 }
 
 /// # Update webhook configuration
@@ -37,11 +45,17 @@ pub async fn webhook_get(
 #[openapi(tag = "Webhooks")]
 #[put("/netspots/webhook/<id>", data = "<hook>")]
 pub async fn webhook_put(
-    _state: &State<NetspotControlState>,
+    state: &State<NetspotControlState>,
     id: Result<i32, &str>,
     hook: Json<Webhook>,
 ) -> Result<(), Status> {
-    println!("webhook_put: {:?} {:#?}", id, hook);
+    if let Ok(id) = id {
+        return match state.database.set_webhook(id, &*hook) {
+            Ok(_) => Ok(()),
+            Err(DatabaseError::NotFound) => Err(Status::NotFound),
+            Err(_) => Err(Status::InternalServerError),
+        };
+    }
     Err(Status::BadRequest)
 }
 
@@ -51,10 +65,16 @@ pub async fn webhook_put(
 #[openapi(tag = "Webhooks")]
 #[delete("/netspots/webhook/<id>")]
 pub async fn webhook_delete(
-    _state: &State<NetspotControlState>,
+    state: &State<NetspotControlState>,
     id: Result<i32, &str>,
 ) -> Result<(), Status> {
-    println!("webhook_delete: {:?}", id);
+    if let Ok(id) = id {
+        return match state.database.delete_webhook(id) {
+            Ok(_) => Ok(()),
+            Err(DatabaseError::NotFound) => Err(Status::NotFound),
+            Err(_) => Err(Status::InternalServerError),
+        };
+    }
     Err(Status::BadRequest)
 }
 
@@ -64,7 +84,9 @@ pub async fn webhook_delete(
 /// Use ID to query detailed configuration when needed.
 #[openapi(tag = "Webhooks")]
 #[get("/netspot/webhooks")]
-pub async fn webhooks_list(_state: &State<NetspotControlState>) -> Json<Webhooks> {
-    println!("webhooks_list requested");
-    Json(Webhooks::default())
+pub async fn webhooks_list(state: &State<NetspotControlState>) -> Result<Json<Webhooks>, Status> {
+    match state.database.list_webhooks() {
+        Ok(webhooks) => Ok(Json(webhooks)),
+        Err(_) => Err(Status::InternalServerError),
+    }
 }

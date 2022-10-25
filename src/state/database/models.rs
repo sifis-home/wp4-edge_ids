@@ -26,3 +26,9 @@ pub struct NewData<'a> {
     pub time: i64,
     pub message: &'a str,
 }
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = webhooks)]
+pub struct NewWebhook<'a> {
+    pub config: &'a str,
+}
