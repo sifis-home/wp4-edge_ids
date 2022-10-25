@@ -34,7 +34,7 @@ pub struct Webhook {
     pub address: String,
     #[serde(default)]
     pub method: WebhookRequestMethod,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub headers: WebhookHeaders,
     #[serde(default, rename = "type")]
     pub stats_type: WebhookStatsType,
@@ -190,5 +190,20 @@ mod tests {
             stats_type: WebhookStatsType::Both,
         };
         assert_eq!(hook, expected);
+    }
+
+    #[test]
+    fn skip_empty_headers() {
+        let hook = Webhook {
+            name: "name".to_string(),
+            address: "address".to_string(),
+            method: Default::default(),
+            headers: Default::default(),
+            stats_type: Default::default(),
+        };
+        let json = serde_json::to_string(&hook).unwrap();
+        let expected = r#"{"name":"name","address":"address","method":"POST","type":"both"}"#;
+        // Note: expected JSON should not have headers field at all.
+        assert_eq!(json, expected);
     }
 }
