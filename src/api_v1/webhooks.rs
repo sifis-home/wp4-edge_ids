@@ -1,10 +1,21 @@
 use crate::state::database::DatabaseError;
 use crate::state::NetspotControlState;
-use crate::structures::webhooks::{Webhook, Webhooks};
+use crate::structures::webhooks::{Webhook, WebhookList};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{delete, get, post, put, State};
 use rocket_okapi::openapi;
+
+fn update_webhooks(state: &State<NetspotControlState>) {
+    match state.database.get_webhooks() {
+        Ok(webhooks) => {
+            state.webhooks.update(webhooks);
+        }
+        Err(err) => {
+            println!("Unexpected: Could not get webhooks {err}");
+        }
+    }
+}
 
 /// # Create a new webhook
 ///
@@ -16,6 +27,7 @@ pub async fn webhook_add(
     new_hook: Json<Webhook>,
 ) -> Result<Status, Status> {
     if state.database.add_webhook(&*new_hook).is_ok() {
+        update_webhooks(state);
         return Ok(Status::Created);
     }
     Err(Status::BadRequest)
@@ -51,7 +63,10 @@ pub async fn webhook_put(
 ) -> Result<(), Status> {
     if let Ok(id) = id {
         return match state.database.set_webhook(id, &*hook) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                update_webhooks(state);
+                Ok(())
+            }
             Err(DatabaseError::NotFound) => Err(Status::NotFound),
             Err(_) => Err(Status::InternalServerError),
         };
@@ -70,7 +85,10 @@ pub async fn webhook_delete(
 ) -> Result<(), Status> {
     if let Ok(id) = id {
         return match state.database.delete_webhook(id) {
-            Ok(_) => Ok(()),
+            Ok(_) => {
+                update_webhooks(state);
+                Ok(())
+            }
             Err(DatabaseError::NotFound) => Err(Status::NotFound),
             Err(_) => Err(Status::InternalServerError),
         };
@@ -84,7 +102,9 @@ pub async fn webhook_delete(
 /// Use ID to query detailed configuration when needed.
 #[openapi(tag = "Webhooks")]
 #[get("/netspot/webhooks")]
-pub async fn webhooks_list(state: &State<NetspotControlState>) -> Result<Json<Webhooks>, Status> {
+pub async fn webhooks_list(
+    state: &State<NetspotControlState>,
+) -> Result<Json<WebhookList>, Status> {
     match state.database.list_webhooks() {
         Ok(webhooks) => Ok(Json(webhooks)),
         Err(_) => Err(Status::InternalServerError),

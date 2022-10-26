@@ -37,6 +37,7 @@ class Webhook(BaseHTTPRequestHandler):
                 print(f'{method}: No message')
             self.send_response(200)
             self.end_headers()
+            # print(self.headers)  # Enable this if you want to see headers
         else:
             print("Responding with 404 to an unknown path:", self.path)
             self.send_response(404)
@@ -54,6 +55,10 @@ class Webhook(BaseHTTPRequestHandler):
 
     def do_PUT(self):
         self.message_handler('PUT')
+
+    def log_message(self, format, *args):
+        # Silencing log messages to print only messages from netspots
+        pass
 
 
 def main():

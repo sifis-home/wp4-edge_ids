@@ -1,7 +1,10 @@
 pub mod database;
 pub mod netspots;
+pub mod webhooks;
 
+use crate::state::webhooks::WebhookManager;
 use crate::structures::statistics::Message;
+
 use database::Database;
 use netspots::NetspotManager;
 use std::env;
@@ -13,6 +16,7 @@ use tokio::sync::{broadcast, mpsc};
 pub struct NetspotControlState {
     pub netspots: NetspotManager,
     pub database: Database,
+    pub webhooks: WebhookManager,
 
     // Broadcasting shutdown signal to all worker tasks
     shutdown_request_tx: broadcast::Sender<()>,
@@ -44,6 +48,13 @@ impl NetspotControlState {
         // Database has worker task for writing messages to the database.
         let database = Database::new(messages_tx.subscribe(), shutdown_complete_tx.clone())?;
 
+        // Webhook manager has worker task for sending messages.
+        let webhooks = WebhookManager::new(
+            database.get_webhooks()?,
+            messages_tx.subscribe(),
+            shutdown_complete_tx.clone(),
+        );
+
         // Netspot manager has worker tasks for receiving messages from netspot processes
         let netspots = NetspotManager::new(
             database.get_configurations()?,
@@ -57,6 +68,7 @@ impl NetspotControlState {
         Ok(NetspotControlState {
             database,
             netspots,
+            webhooks,
             shutdown_request_tx,
         })
     }

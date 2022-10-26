@@ -123,31 +123,19 @@ docker logs netspot_control --follow
 ## TODO
 
 - [x] OpenAPI specification for the service
-  - [x] Version 0.1.3 done — [yaml](docs/netspot-control-api.yaml) | [json](static/design/openapi.json)
+  - [x] Version 1.0.0 done — [yaml](docs/netspot-control-api.yaml) | [json](static/design/openapi.json)
   - [x] Available from the `netspot_control` service itself
 - [x] Writing `netspot_control` application:
-  - [x] Design of program parts and interactions
-  - [x] Structures
-    - [x] Netspot configuration
-      - [x] Making TOML configuration for netspot
-    - [x] Status
-    - [x] Statuses
-    - [x] Statistics
-    - [x] Webhook
-    - [x] Webhooks
-  - [ ] Database handler
+  - [x] Database handler
     - [x] Configuration endpoints
     - [x] Statistics endpoints
-    - [ ] Webhooks endpoints
-  - [x] NetspotProcess
+    - [x] Webhooks endpoints
   - [x] NetspotManager
-    - [x] SocketListener
     - [x] NetspotSocket
       - [x] Forwarding received data to exporters via suitable channel
         - [x] Printing  to stdout in debug build
         - [x] Database
-        - [ ] Webhook
-    - [x] Status endpoints
+        - [x] Webhook
   - [ ] CORS ?
   - [ ] Authorization ?
 - [ ] WP2 Checklist
@@ -155,7 +143,7 @@ docker logs netspot_control --follow
     - [x] Code coverage
     - [ ] Continous delivery
 - [ ] Integration tests
-- [ ] Example scripts
+- [x] Example scripts
 
 <!-- Links -->
 [actions]: https://github.com/sifis-home/wp4-edge_ids/actions

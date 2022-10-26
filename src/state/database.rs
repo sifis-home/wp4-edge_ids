@@ -12,7 +12,7 @@ use diesel::sqlite::Sqlite;
 use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
-use crate::structures::webhooks::{Webhook, WebhookItem, Webhooks};
+use crate::structures::webhooks::{Webhook, WebhookItem, WebhookList, Webhooks};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
@@ -279,11 +279,35 @@ impl Database {
         None
     }
 
-    pub fn list_webhooks(&self) -> Result<Webhooks, String> {
+    pub fn get_webhooks(&self) -> Result<Webhooks, String> {
         let mut connection = self.db_connection.lock().unwrap();
         match schema::webhooks::dsl::webhooks.load::<models::Configuration>(&mut *connection) {
             Ok(results) => {
                 let mut webhooks = Webhooks::new();
+                for result in results {
+                    match serde_json::from_str::<Webhook>(&result.config) {
+                        Ok(webhook) => {
+                            webhooks.insert(result.id, webhook);
+                        }
+                        Err(err) => {
+                            return Err(format!(
+                                "Parsing configuration {} failed: {}",
+                                result.id, err
+                            ));
+                        }
+                    }
+                }
+                Ok(webhooks)
+            }
+            Err(err) => Err(format!("Query failed: {}", err)),
+        }
+    }
+
+    pub fn list_webhooks(&self) -> Result<WebhookList, String> {
+        let mut connection = self.db_connection.lock().unwrap();
+        match schema::webhooks::dsl::webhooks.load::<models::Configuration>(&mut *connection) {
+            Ok(results) => {
+                let mut webhooks = WebhookList::new();
                 for result in results {
                     match serde_json::from_str::<Webhook>(&result.config) {
                         Ok(hook) => {

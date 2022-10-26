@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 pub type WebhookHeaders = HashMap<String, String>;
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum WebhookRequestMethod {
     Get,
@@ -16,7 +16,7 @@ pub enum WebhookRequestMethod {
     Put,
 }
 
-#[derive(Debug, Default, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum WebhookStatsType {
     Alarms, // Only alarms
@@ -28,7 +28,7 @@ pub enum WebhookStatsType {
 // Webhook
 //--------------------------------------------------------------------------------------------------
 
-#[derive(Debug, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 pub struct Webhook {
     pub name: String,
     pub address: String,
@@ -49,7 +49,12 @@ pub struct WebhookItem {
     pub name: String,
 }
 
-pub type Webhooks = Vec<WebhookItem>;
+pub type WebhookList = Vec<WebhookItem>;
+
+// Container for webhook configurations
+//--------------------------------------------------------------------------------------------------
+
+pub type Webhooks = HashMap<i32, Webhook>;
 
 // Unit tests
 //--------------------------------------------------------------------------------------------------
@@ -136,7 +141,7 @@ mod tests {
 
     #[test]
     fn webhooks() {
-        let hooks: Webhooks = vec![
+        let hooks: WebhookList = vec![
             WebhookItem {
                 id: 1,
                 name: "Captain Hook".to_string(),
@@ -160,7 +165,7 @@ mod tests {
     "name": "My example callback #2"
   }
 ]"#;
-        let hooks = serde_json::from_str::<Webhooks>(json).unwrap();
+        let hooks = serde_json::from_str::<WebhookList>(json).unwrap();
         let expected = vec![
             WebhookItem {
                 id: 1,
