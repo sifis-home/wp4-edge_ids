@@ -2,6 +2,7 @@ pub mod configuration;
 pub mod network;
 pub mod statistics;
 pub mod status;
+pub mod testing;
 pub mod webhooks;
 
 use rocket_okapi::openapi_get_routes;
@@ -28,5 +29,6 @@ pub fn routes() -> Vec<rocket::Route> {
         webhooks::webhook_get,
         webhooks::webhook_put,
         webhooks::webhook_delete,
+        testing::send_test_alarm,
     ]
 }

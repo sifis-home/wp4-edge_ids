@@ -95,7 +95,7 @@ def main():
 
     message_options = parser.add_argument_group('Filtering', 'Message filtering options')
     message_options.add_argument('-l', '--limit', nargs='?', metavar='COUNT', dest='limit', default=DEFAULT_LIMIT,
-                                 help=f'Limits how many results are displayed. The default is: {DEFAULT_ADDRESS}.')
+                                 help=f'Limits how many results are displayed. The default is: {DEFAULT_LIMIT}.')
     message_options.add_argument('-t', '--time', nargs='?', metavar='TIME',
                                  help='Only show results that are newer than this.'
                                       'Time is nanoseconds since the Unix epoch.')
@@ -123,6 +123,7 @@ def main():
         print('Alarm messages')
         print('--------------')
         follow_messages(args.server_address, 'alarms')
+
     elif args.follow_data:
         print('Data messages')
         print('-------------')

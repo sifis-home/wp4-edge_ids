@@ -4,15 +4,16 @@ use crate::state::netspots::net::SocketUse;
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
 use crate::structures::status::{ProcessStatus, Status, Statuses};
 
-use crate::structures::statistics::Message;
+use crate::api_v1::testing::TestAlarmMessage;
+use crate::structures::statistics::{AlarmMessage, Message, MessageType};
 use nix::sys::signal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 use rocket::warn;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::sync::RwLock;
-use std::time::Duration;
+use std::sync::{Mutex, RwLock};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fs, io};
 use tokio::process::{Child, Command};
 use tokio::sync::{broadcast, mpsc, oneshot};
@@ -26,6 +27,7 @@ pub enum NetspotManagerError {
 }
 
 pub struct NetspotManager {
+    message_tx: Mutex<broadcast::Sender<Message>>,
     netspots_lock: RwLock<Netspots>,
     shutdown_complete_tx: mpsc::Sender<()>,
 }
@@ -45,16 +47,39 @@ impl NetspotManager {
         )?;
         net::start_listener_task(
             SocketUse::Data,
-            message_tx,
+            message_tx.clone(),
             shutdown_request_rx,
             shutdown_complete_tx.clone(),
         )?;
         let manager = NetspotManager {
+            message_tx: Mutex::new(message_tx),
             netspots_lock: RwLock::new(Netspots::new()),
             shutdown_complete_tx,
         };
         manager.update_all(configurations)?;
         Ok(manager)
+    }
+
+    pub fn send_test_alarm(&self, test_alarm: TestAlarmMessage) -> bool {
+        let time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as i64;
+        let full_alarm_message = AlarmMessage {
+            time,
+            name: test_alarm.name,
+            series: "TEST ALARM".to_string(),
+            stat: test_alarm.stat,
+            status: test_alarm.status,
+            value: test_alarm.value,
+            probability: test_alarm.probability,
+            code: 1,
+            msg_type: MessageType::Alarm,
+        };
+        let message_tx = self.message_tx.lock().unwrap();
+        message_tx
+            .send(Message::Alarm(Box::new(full_alarm_message)))
+            .is_ok()
     }
 
     pub fn restart_all(&self) {
