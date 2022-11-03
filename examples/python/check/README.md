@@ -41,7 +41,7 @@ python3 check.py --help
 python3 check.py 127.0.0.1 2000
 ```
 
-**Get new alarm that is within 20 minutes from the current time **
+**Get new alarm that is within 20 minutes from the current time**
 
 ```bash
 python3 check.py 127.0.0.1 2000 --within 20
