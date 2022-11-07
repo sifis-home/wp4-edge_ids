@@ -1,3 +1,4 @@
+pub mod influxdb;
 pub mod miner;
 pub mod spot;
 pub mod stats;
