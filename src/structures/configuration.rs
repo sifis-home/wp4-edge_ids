@@ -66,7 +66,7 @@ impl NetspotConfig {
             None => String::from(""),
             Some(influxdb1) => format!(
                 r#"
-[exporter.influxdb1]
+[exporter.influxdb]
 data = {data}
 alarm = {alarm}
 address = "{address}"
