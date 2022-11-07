@@ -343,7 +343,7 @@ alarm = "unix:///tmp/netspot_alarm.socket"
 tag = "InfluxDB test"
 format = "json"
 
-[exporter.influxdb1]
+[exporter.influxdb]
 data = true
 alarm = true
 address = "http://host.docker.internal:8086"
