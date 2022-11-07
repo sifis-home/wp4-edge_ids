@@ -92,6 +92,12 @@ impl StatsConfig {
                 }
             }
         }
+
+        // Prepend empty line at start if we have any content
+        if !result.is_empty() {
+            result.insert(0, '\n');
+        }
+
         // Return result string
         result
     }
@@ -212,8 +218,9 @@ period = "1s"
 stats = ["AVG_PKT_SIZE", "PERF", "R_ACK", "R_ARP", "R_DST_SRC", "R_DST_SRC_PORT", "R_ICMP", "R_IP", "R_SYN", "TRAFFIC"]"#;
         assert_eq!(config.make_analyzer_toml(), expected);
 
-        // We should get SPOT overrides for all items where q is 1
-        let expected = r#"[spot.AVG_PKT_SIZE]
+        // We should get SPOT overrides for all items where q is 1.1
+        let expected = r#"
+[spot.AVG_PKT_SIZE]
 q = 1.1
 
 [spot.PERF]

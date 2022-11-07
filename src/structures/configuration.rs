@@ -3,6 +3,7 @@ pub mod miner;
 pub mod spot;
 pub mod stats;
 
+use crate::structures::configuration::influxdb::InfluxDB1Config;
 use rocket_okapi::okapi::schemars;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -51,6 +52,8 @@ pub const DEFAULT_NETSPOT_CONFIG_JSON: &str = r#"{
 #[derive(Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct NetspotConfig {
     pub configuration: miner::MinerConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub influxdb1: Option<InfluxDB1Config>,
     #[serde(default)]
     pub spot: spot::SpotConfig,
     #[serde(default)]
@@ -58,6 +61,33 @@ pub struct NetspotConfig {
 }
 
 impl NetspotConfig {
+    fn make_influxdb1_toml(&self) -> String {
+        match self.influxdb1.as_ref() {
+            None => String::from(""),
+            Some(influxdb1) => format!(
+                r#"
+[exporter.influxdb1]
+data = {data}
+alarm = {alarm}
+address = "{address}"
+database = "{database}"
+username = "{username}"
+password = "{password}"
+batch_size = {batch_size}
+agent_name = "{agent_name}"
+"#,
+                data = influxdb1.data,
+                alarm = influxdb1.data,
+                address = influxdb1.address,
+                database = influxdb1.database,
+                username = influxdb1.username,
+                password = influxdb1.password,
+                batch_size = influxdb1.batch_size,
+                agent_name = influxdb1.agent_name
+            ),
+        }
+    }
+
     pub fn make_toml(&self) -> String {
         format!(
             r#"[miner]
@@ -73,7 +103,7 @@ data = "unix:///tmp/netspot_data.socket"
 alarm = "unix:///tmp/netspot_alarm.socket"
 tag = "{tag}"
 format = "json"
-
+{influxdb1}
 [spot]
 depth = {depth}
 q = {q}
@@ -84,12 +114,12 @@ down = {down}
 alert = {alert}
 bounded = {bounded}
 max_excess = {max_excess}
-
 {spot_overrides}"#,
             device = self.configuration.device,
             promiscuous = self.configuration.promiscuous,
             analyzer = self.stats.make_analyzer_toml(),
             tag = self.configuration.name,
+            influxdb1 = self.make_influxdb1_toml(),
             depth = self.spot.depth,
             q = self.spot.q,
             n_init = self.spot.n_init,
@@ -265,6 +295,75 @@ max_excess = 1
 up = false
 "#;
         let config: NetspotConfig = serde_json::from_str(DEFAULT_NETSPOT_CONFIG_JSON).unwrap();
+        assert_eq!(config.make_toml(), expected);
+    }
+
+    #[test]
+    fn test_influxdb1_config() {
+        let json = r#"{
+	"configuration": {
+		"name": "InfluxDB test"
+	},
+	"influxdb1": {
+		"data": true,
+		"alarm": true,
+		"address": "http://host.docker.internal:8086",
+		"database": "database_example",
+		"username": "username_example",
+		"password": "password_example",
+		"batch_size": 5,
+		"agent_name": "agent_example"
+	}
+}"#;
+        let config = serde_json::from_str::<NetspotConfig>(json).unwrap();
+        let influxdb1 = config.influxdb1.as_ref().unwrap();
+        assert!(influxdb1.data);
+        assert!(influxdb1.alarm);
+        assert_eq!(influxdb1.address, "http://host.docker.internal:8086");
+        assert_eq!(influxdb1.database, "database_example");
+        assert_eq!(influxdb1.username, "username_example");
+        assert_eq!(influxdb1.password, "password_example");
+        assert_eq!(influxdb1.batch_size, 5);
+        assert_eq!(influxdb1.agent_name, "agent_example");
+
+        // Configuration should make the following TOML
+        let expected = r#"[miner]
+device = "any"
+promiscuous = true
+snapshot_len = 65535
+timeout = "0s"
+
+[analyzer]
+period = "1s"
+stats = []
+
+[exporter.socket]
+data = "unix:///tmp/netspot_data.socket"
+alarm = "unix:///tmp/netspot_alarm.socket"
+tag = "InfluxDB test"
+format = "json"
+
+[exporter.influxdb1]
+data = true
+alarm = true
+address = "http://host.docker.internal:8086"
+database = "database_example"
+username = "username_example"
+password = "password_example"
+batch_size = 5
+agent_name = "agent_example"
+
+[spot]
+depth = 50
+q = 0.0001
+n_init = 1000
+level = 0.8
+up = true
+down = false
+alert = true
+bounded = true
+max_excess = 200
+"#;
         assert_eq!(config.make_toml(), expected);
     }
 }
