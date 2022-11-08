@@ -26,7 +26,7 @@ pub async fn webhook_add(
     state: &State<NetspotControlState>,
     new_hook: Json<Webhook>,
 ) -> Result<Status, Status> {
-    if state.database.add_webhook(&*new_hook).is_ok() {
+    if state.database.add_webhook(&new_hook).is_ok() {
         update_webhooks(state);
         return Ok(Status::Created);
     }
@@ -62,7 +62,7 @@ pub async fn webhook_put(
     hook: Json<Webhook>,
 ) -> Result<(), Status> {
     if let Ok(id) = id {
-        return match state.database.set_webhook(id, &*hook) {
+        return match state.database.set_webhook(id, &hook) {
             Ok(_) => {
                 update_webhooks(state);
                 Ok(())
