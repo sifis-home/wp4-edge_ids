@@ -26,7 +26,7 @@ pub async fn netspot_add(
     state: &State<NetspotControlState>,
     new_config: Json<NetspotConfig>,
 ) -> Result<Status, Status> {
-    if state.database.add_configuration(&*new_config).is_ok() {
+    if state.database.add_configuration(&new_config).is_ok() {
         update_all_netspots(state);
         return Ok(Status::Created);
     }
@@ -64,7 +64,7 @@ pub async fn netspot_put(
     config: Json<NetspotConfig>,
 ) -> Result<(), Status> {
     if let Ok(id) = id {
-        return match state.database.set_configuration(id, &*config) {
+        return match state.database.set_configuration(id, &config) {
             Ok(_) => {
                 update_all_netspots(state);
                 Ok(())

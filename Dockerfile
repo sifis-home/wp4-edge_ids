@@ -13,7 +13,7 @@ FROM golang:bullseye as GO-BUILDER
 # Install development packages
 ARG PACKAGES="libpcap0.8-dev"
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt install -y $PACKAGES
+RUN apt update && apt upgrade -y && apt install -y $PACKAGES
 
 # Cloning netspot
 WORKDIR /build
@@ -36,7 +36,7 @@ FROM rust:bullseye as RUST-BUILDER
 # Install development packages
 ARG PACKAGES="libpcap0.8-dev"
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt install -y $PACKAGES
+RUN apt update && apt upgrade -y && apt install -y $PACKAGES
 
 # Building netspot control
 WORKDIR /opt/netspot_control
@@ -53,7 +53,7 @@ FROM debian:bullseye-slim
 
 # Install required packages
 ARG PACKAGES="libpcap0.8 libsqlite3-0"
-RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y $PACKAGES && rm -rf /var/lib/apt/lists/*
+RUN DEBIAN_FRONTEND=noninteractive apt update && DEBIAN_FRONTEND=noninteractive apt upgrade -y && DEBIAN_FRONTEND=noninteractive apt install -y $PACKAGES && rm -rf /var/lib/apt/lists/*
 COPY --from=GO-BUILDER /usr/bin/netspot /usr/bin/netspot
 COPY --from=RUST-BUILDER /opt/netspot_control/target/release/netspot_control /usr/bin/netspot_control
 COPY static /opt/netspot_control/static
