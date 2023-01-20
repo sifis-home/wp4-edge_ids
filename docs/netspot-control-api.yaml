@@ -230,7 +230,7 @@ paths:
         - Statistics
       summary: Read netspot statistics
       description: >-
-        Reads recorded nestpot statistics.
+        Reads recorded netspot statistics.
 
 
         We can use parameters to limit which results are returned. Without
@@ -284,7 +284,7 @@ paths:
         - Statistics
       summary: Read alarms from netspot statistics
       description: >-
-        Reads recorded alarms from nestpot statistics.
+        Reads recorded alarms from netspot statistics.
 
 
         We can use parameters to limit which results are returned. Without
@@ -418,7 +418,7 @@ paths:
       summary: List installed webhooks
       description: >-
         Lists installed webhooks by their id and names. Use ID to query detailed
-        configureation when needed.
+        configuration when needed.
       responses:
         '200':
           description: Successful operation
@@ -550,7 +550,7 @@ components:
     InvalidInput:
       description: Invalid input
     InvalidQuery:
-      description: Invalid query paramters supplied
+      description: Invalid query parameters supplied
   schemas:
     Configuration:
       description: >-
@@ -590,7 +590,7 @@ components:
         - configuration
       properties:
         configuration:
-          description: Analyzation configugration
+          description: Analyzation configuration
           type: object
           required:
             - name

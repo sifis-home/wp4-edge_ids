@@ -275,7 +275,7 @@ impl NetspotProcess {
                                    Terminating the netspot process.", netspot_id);
                         let _ = process.kill().await ;
                     }
-                };
+                }
                 drop(shutdown_complete_tx);
             });
         }

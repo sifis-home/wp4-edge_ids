@@ -9,8 +9,8 @@ license-file = "LICENSE"
 diesel = { version = "2.0.2", features = ["sqlite"] }
 diesel_migrations = "2.0.0"
 dotenv = "0.15.0"
-nix = { version = "0.25.0", features = ["signal"] }
-pcap = "0.11.0"
+nix = { version = "0.26.2", features = ["signal"] }
+pcap = "1.0.0"
 reqwest = "0.11.12"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 rocket_okapi = { version = "0.8.0-rc.2", features = ["rapidoc", "swagger"] }
