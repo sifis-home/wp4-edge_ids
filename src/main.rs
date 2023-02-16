@@ -3,7 +3,7 @@ mod state;
 mod structures;
 
 use crate::state::NetspotControlState;
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use rocket::fs::{relative, FileServer};
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;

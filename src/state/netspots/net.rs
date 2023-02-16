@@ -43,7 +43,7 @@ pub fn start_listener_task(
     };
 
     // Start listener
-    let _ = tokio::spawn(async move {
+    tokio::spawn(async move {
         println!("{} socket listener started.", name);
         tokio::select! {
             _ = listener_loop(listener, socket_use, message_tx,

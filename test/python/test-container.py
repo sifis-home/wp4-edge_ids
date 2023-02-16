@@ -9,7 +9,7 @@ from netspot_control_client.api.status import status_status_all
 from netspot_control_client.models import *
 
 # Using this image to run a container for testing
-docker_image = "netspot_control:v1.0.2"
+docker_image = "netspot_control:v1.0.3"
 
 # Using this port to communicate with netspot_control in the container
 netspot_control_port = 2080

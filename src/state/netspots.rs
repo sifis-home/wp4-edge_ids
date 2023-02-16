@@ -251,7 +251,7 @@ impl NetspotProcess {
             // Copying id for the thread
             let netspot_id = self.id;
             // Run netspot shutdown in a separate task
-            let _ = tokio::spawn(async move {
+            tokio::spawn(async move {
                 // Try to terminate netspot with SIGINT
                 if let Some(id) = process.id() {
                     if let Err(err) = signal::kill(Pid::from_raw(id as i32), Signal::SIGINT) {
