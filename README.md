@@ -34,7 +34,35 @@ https://github.com/Amossys-team/SPOT
 Project Page:
 https://asiffer.github.io/netspot/
 
+## Docker Compose
+
+The project comes with a `docker-compose.yml` file. You can modify it according to your system and wishes. By default, the file compiles the docker image directly from the source codes, but you can comment out the `build` line and remove the comment from the `image` line, which will use the prebuilt image. In that case, download the image from the Releases list and follow the instructions to upload it to docker.
+
+You may also want to uncomment lines at the end of the file to save the database permanently to the host machine.
+
+To start container with Docker Compose, use the command:
+
+```bash
+docker-compose up -d
+```
+
+To follow logs, use the following command (press <kbd>Ctrl</kbd> + <kbd>C</kbd> to cancel log following)
+
+```bash
+docker-compose logs -f -n 10
+# or
+docker logs netspot_control -f -n 10
+```
+
+To stop and remove the container, give the following command:
+
+```bash
+docker-compose down
+```
+
 ## Docker
+
+**Note!** You don't need to follow these instructions if you used Docker Compose above.
 
 Building docker file:
 
@@ -122,28 +150,10 @@ docker logs netspot_control --follow
 
 ## TODO
 
-- [x] OpenAPI specification for the service
-  - [x] Version 1.0.0 done — [yaml](docs/netspot-control-api.yaml) | [json](static/design/openapi.json)
-  - [x] Available from the `netspot_control` service itself
-- [x] Writing `netspot_control` application:
-  - [x] Database handler
-    - [x] Configuration endpoints
-    - [x] Statistics endpoints
-    - [x] Webhooks endpoints
-  - [x] NetspotManager
-    - [x] NetspotSocket
-      - [x] Forwarding received data to exporters via suitable channel
-        - [x] Printing  to stdout in debug build
-        - [x] Database
-        - [x] Webhook
-  - [ ] CORS ?
-  - [ ] Authorization ?
-- [ ] WP2 Checklist
-  - [x] GitHub Action
-    - [x] Code coverage
-    - [ ] Continous delivery
+- [ ] CORS ?
+- [ ] Authorization ?
 - [ ] Integration tests
-- [x] Example scripts
+- [ ] Re-generate GitHub actions with sifis-generate
 
 <!-- Links -->
 [actions]: https://github.com/sifis-home/wp4-edge_ids/actions

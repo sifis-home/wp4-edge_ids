@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  netspot_control:
+    # Choose one of the two below
+    build: .                        # Build container from the source code...
+    #image: netspot_control:v1.0.3   # ... or use pre-installed image
+
+    environment:
+      ROCKET_PORT: 2080             # Which TCP port should netspot control listen to
+      SHOW_NETSPOT_MESSAGES: 1      # 0 = show normal messages in logs
+                                    # 1 = also show netspot statistic messages in logs
+
+    container_name: netspot_control
+    network_mode: host
+    restart: always
+
+    # Remove the comments if you want to save the database permanently to the host machine
+    #volumes:
+    #  - /opt/netspot_control/db:/var/lib/netspot_control
