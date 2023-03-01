@@ -455,6 +455,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Install development library and header files for libpcap0.8
+      run: |
+        DEBIAN_FRONTEND=noninteractive sudo apt -y update
+        DEBIAN_FRONTEND=noninteractive sudo apt -y install libpcap0.8-dev
+
     - name: Install valgrind
       run: |
         sudo apt-get install valgrind
@@ -482,6 +487,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Install development library and header files for libpcap0.8
+      run: |
+        DEBIAN_FRONTEND=noninteractive sudo apt -y update
+        DEBIAN_FRONTEND=noninteractive sudo apt -y install libpcap0.8-dev
 
     - name: Install Rust nightly
       uses: dtolnay/rust-toolchain@nightly
@@ -515,6 +525,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Install development library and header files for libpcap0.8
+      run: |
+        DEBIAN_FRONTEND=noninteractive sudo apt -y update
+        DEBIAN_FRONTEND=noninteractive sudo apt -y install libpcap0.8-dev
+
     - name: Install Rust nightly
       uses: dtolnay/rust-toolchain@nightly
       with:
@@ -541,6 +556,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Install development library and header files for libpcap0.8
+      run: |
+        DEBIAN_FRONTEND=noninteractive sudo apt -y update
+        DEBIAN_FRONTEND=noninteractive sudo apt -y install libpcap0.8-dev
 
     - name: Install Rust nightly
       uses: dtolnay/rust-toolchain@nightly
