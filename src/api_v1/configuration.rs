@@ -7,9 +7,9 @@ use rocket::serde::json::Json;
 use rocket::{delete, get, post, put, State};
 use rocket_okapi::openapi;
 
-fn update_all_netspots(state: &State<NetspotControlState>) {
+async fn update_all_netspots(state: &State<NetspotControlState>) {
     if let Ok(configurations) = state.database.get_configurations() {
-        if state.netspots.update_all(configurations).is_err() {
+        if state.netspots.update_all(configurations).await.is_err() {
             warn!("Unexpected: updating process configurations failed");
         }
     } else {
@@ -27,7 +27,7 @@ pub async fn netspot_add(
     new_config: Json<NetspotConfig>,
 ) -> Result<Status, Status> {
     if state.database.add_configuration(&new_config).is_ok() {
-        update_all_netspots(state);
+        update_all_netspots(state).await;
         return Ok(Status::Created);
     }
     Err(Status::BadRequest)
@@ -66,7 +66,7 @@ pub async fn netspot_put(
     if let Ok(id) = id {
         return match state.database.set_configuration(id, &config) {
             Ok(_) => {
-                update_all_netspots(state);
+                update_all_netspots(state).await;
                 Ok(())
             }
             Err(DatabaseError::NotFound) => Err(Status::NotFound),
@@ -86,10 +86,10 @@ pub async fn netspot_delete(
     id: Result<i32, &str>,
 ) -> Result<(), Status> {
     if let Ok(id) = id {
-        let _ = state.netspots.stop_by_id(id);
+        let _ = state.netspots.stop_by_id(id).await;
         return match state.database.delete_configuration(id) {
             Ok(_) => {
-                update_all_netspots(state);
+                update_all_netspots(state).await;
                 Ok(())
             }
             Err(DatabaseError::NotFound) => Err(Status::NotFound),

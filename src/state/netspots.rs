@@ -13,11 +13,11 @@ use nix::unistd::Pid;
 use rocket::warn;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::sync::{Mutex, RwLock};
+use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fs, io};
 use tokio::process::{Child, Command};
-use tokio::sync::{broadcast, oneshot};
+use tokio::sync::{broadcast, oneshot, RwLock};
 use tokio::time;
 
 // Configuration id is mapped to process handler
@@ -33,7 +33,7 @@ pub struct NetspotManager {
 }
 
 impl NetspotManager {
-    pub fn new(
+    pub async fn new(
         configurations: NetspotConfigMap,
         message_tx: broadcast::Sender<Message>,
         run_checker: RunChecker,
@@ -44,7 +44,7 @@ impl NetspotManager {
             message_tx: Mutex::new(message_tx),
             netspots_lock: RwLock::new(Netspots::new()),
         };
-        manager.update_all(configurations)?;
+        manager.update_all(configurations).await?;
         Ok(manager)
     }
 
@@ -70,19 +70,19 @@ impl NetspotManager {
             .is_ok()
     }
 
-    pub fn restart_all(&self) {
-        self.stop_all();
-        self.start_all();
+    pub async fn restart_all(&self) {
+        self.stop_all().await;
+        self.start_all().await;
     }
 
-    pub fn restart_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
-        self.stop_by_id(id)?;
-        self.start_by_id(id)?;
-        self.status_by_id(id)
+    pub async fn restart_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        self.stop_by_id(id).await?;
+        self.start_by_id(id).await?;
+        self.status_by_id(id).await
     }
 
-    pub fn start_all(&self) {
-        let mut netspots = self.netspots_lock.write().unwrap();
+    pub async fn start_all(&self) {
+        let mut netspots = self.netspots_lock.write().await;
         for (id, process) in netspots.iter_mut() {
             if let Err(err) = process.start() {
                 warn!("Could not start process {}: {}", id, err.to_string());
@@ -90,21 +90,21 @@ impl NetspotManager {
         }
     }
 
-    pub fn start_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+    pub async fn start_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        // Using scope to remove write lock before reading status result
         {
-            // Using scope to remove write lock before reading status result
-            let mut netspots = self.netspots_lock.write().unwrap();
+            let mut netspots = self.netspots_lock.write().await;
             if let Some(process) = netspots.get_mut(&id) {
                 if let Err(err) = process.start() {
                     warn!("Could not start process {}: {}", id, err.to_string());
                 }
             }
         }
-        self.status_by_id(id)
+        self.status_by_id(id).await
     }
 
-    pub fn status_all(&self) -> Statuses {
-        let netspots = self.netspots_lock.read().unwrap();
+    pub async fn status_all(&self) -> Statuses {
+        let netspots = self.netspots_lock.read().await;
         let mut statuses = Statuses::new();
         for process in netspots.values() {
             statuses.push(process.status());
@@ -112,39 +112,39 @@ impl NetspotManager {
         statuses
     }
 
-    pub fn status_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
-        let netspots = self.netspots_lock.read().unwrap();
+    pub async fn status_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        let netspots = self.netspots_lock.read().await;
         if let Some(process) = netspots.get(&id) {
             return Ok(process.status());
         }
         Err(NetspotManagerError::NotFound)
     }
 
-    pub fn stop_all(&self) {
-        let mut netspots = self.netspots_lock.write().unwrap();
+    pub async fn stop_all(&self) {
+        let mut netspots = self.netspots_lock.write().await;
         for (id, process) in netspots.iter_mut() {
-            if let Err(err) = process.stop() {
+            if let Err(err) = process.stop().await {
                 warn!("Error while stopping process {}: {}", id, err.to_string());
             }
         }
     }
 
-    pub fn stop_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+    pub async fn stop_by_id(&self, id: i32) -> Result<Status, NetspotManagerError> {
+        // Using scope to remove write lock before reading status result
         {
-            // Using scope to remove write lock before reading status result
-            let mut netspots = self.netspots_lock.write().unwrap();
+            let mut netspots = self.netspots_lock.write().await;
             if let Some(process) = netspots.get_mut(&id) {
-                if let Err(err) = process.stop() {
+                if let Err(err) = process.stop().await {
                     warn!("Error while stopping process {}: {}", id, err.to_string());
                 }
             }
         }
-        self.status_by_id(id)
+        self.status_by_id(id).await
     }
 
-    pub fn update_all(&self, configurations: NetspotConfigMap) -> Result<(), String> {
+    pub async fn update_all(&self, configurations: NetspotConfigMap) -> Result<(), String> {
         // Lock for writing
-        let mut netspots = self.netspots_lock.write().unwrap();
+        let mut netspots = self.netspots_lock.write().await;
 
         // Remove processes that are no longer in the database
         netspots.retain(|id, _| configurations.contains_key(id));
@@ -217,7 +217,7 @@ impl NetspotProcess {
         {
             Ok(process) => {
                 self.process = Some(process);
-                println!("Netspot configuration {} started correctly.", self.id);
+                println!("Netspot configuration {} started.", self.id);
                 Ok(())
             }
             Err(err) => Err(err),
@@ -232,41 +232,35 @@ impl NetspotProcess {
         }
     }
 
-    fn stop(&mut self) -> Result<(), io::Error> {
+    async fn stop(&mut self) -> Result<(), io::Error> {
         if self.process_status() != ProcessStatus::Running {
             return Ok(());
         }
         if let Some(mut process) = self.process.take() {
-            // Copying id for the thread
-            let netspot_id = self.id;
-
-            // Run netspot shutdown in a separate task
-            tokio::spawn(async move {
-                // Try to terminate netspot with SIGINT
-                if let Some(id) = process.id() {
-                    if let Err(err) = signal::kill(Pid::from_raw(id as i32), Signal::SIGINT) {
-                        eprintln!(
-                            "Unexpected error: Could not send SIGINT for netspot process: {}",
-                            err
-                        );
-                    }
+            // Try to terminate netspot with SIGINT
+            if let Some(id) = process.id() {
+                if let Err(err) = signal::kill(Pid::from_raw(id as i32), Signal::SIGINT) {
+                    eprintln!(
+                        "Unexpected error: Could not send SIGINT for netspot process: {}",
+                        err
+                    );
                 }
+            }
 
-                // We allow 5 seconds for the netspot to shutdown correctly
-                let (tx, rx) = oneshot::channel::<()>();
-                let timeout = time::timeout(Duration::from_secs(5), rx);
-                tokio::select! {
-                    _ = process.wait() => {
-                        drop(tx);
-                        println!("Netspot configuration {} stopped correctly.", netspot_id);
-                    }
-                    _ = timeout => {
-                        eprintln!("Netspot configuration {} did not stop correctly. \
-                                   Terminating the netspot process.", netspot_id);
-                        let _ = process.kill().await ;
-                    }
+            // We allow 5 seconds for the netspot to shutdown correctly
+            let (tx, rx) = oneshot::channel::<()>();
+            let timeout = time::timeout(Duration::from_secs(5), rx);
+            tokio::select! {
+                _ = process.wait() => {
+                    drop(tx);
+                    println!("Netspot configuration {} stopped.", self.id);
                 }
-            });
+                _ = timeout => {
+                    eprintln!("Netspot configuration {} did not stop correctly. \
+                               Terminating the netspot process.", self.id);
+                    let _ = process.kill().await ;
+                }
+            }
         }
         assert!(self.process.is_none());
         fs::remove_file(self.toml_file_path())?;

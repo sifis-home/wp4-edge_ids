@@ -21,7 +21,7 @@ async fn main() {
     }
 
     // Creating State object for the server
-    let state = match NetspotControlState::new() {
+    let state = match NetspotControlState::new().await {
         Ok(state) => state,
         Err(err) => {
             eprintln!("NetspotControlState had an error: {}", err);

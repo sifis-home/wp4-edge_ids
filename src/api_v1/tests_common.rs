@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 
 pub struct TestSetup {
-    client: Client,
-    test_dir: TempDir,
+    pub client: Client,
+    pub test_dir: TempDir,
 }
 
 pub async fn create_test_setup() -> TestSetup {
@@ -17,7 +17,8 @@ pub async fn create_test_setup() -> TestSetup {
 
     // Creating state object
     let state = NetspotControlState::new_with_db_url(test_db.to_str().expect("valid database url"))
-        .unwrap();
+        .await
+        .expect("Valid state object");
 
     // Build test Client
     let client = Client::untracked(build_rocket(state))

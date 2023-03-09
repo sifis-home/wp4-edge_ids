@@ -10,7 +10,7 @@ use rocket_okapi::openapi;
 #[openapi(tag = "Status")]
 #[get("/netspot/<id>/restart")]
 pub async fn restart_by_id(state: &State<NetspotControlState>, id: i32) -> Option<Json<Status>> {
-    match state.netspots.restart_by_id(id) {
+    match state.netspots.restart_by_id(id).await {
         Ok(status) => Some(Json(status)),
         Err(_) => None,
     }
@@ -22,7 +22,7 @@ pub async fn restart_by_id(state: &State<NetspotControlState>, id: i32) -> Optio
 #[openapi(tag = "Status")]
 #[get("/netspot/<id>/start")]
 pub async fn start_by_id(state: &State<NetspotControlState>, id: i32) -> Option<Json<Status>> {
-    match state.netspots.start_by_id(id) {
+    match state.netspots.start_by_id(id).await {
         Ok(status) => Some(Json(status)),
         Err(_) => None,
     }
@@ -34,7 +34,7 @@ pub async fn start_by_id(state: &State<NetspotControlState>, id: i32) -> Option<
 #[openapi(tag = "Status")]
 #[get("/netspot/<id>/status")]
 pub async fn status_by_id(state: &State<NetspotControlState>, id: i32) -> Option<Json<Status>> {
-    match state.netspots.status_by_id(id) {
+    match state.netspots.status_by_id(id).await {
         Ok(status) => Some(Json(status)),
         Err(_) => None,
     }
@@ -46,7 +46,7 @@ pub async fn status_by_id(state: &State<NetspotControlState>, id: i32) -> Option
 #[openapi(tag = "Status")]
 #[get("/netspot/<id>/stop")]
 pub async fn stop_by_id(state: &State<NetspotControlState>, id: i32) -> Option<Json<Status>> {
-    match state.netspots.stop_by_id(id) {
+    match state.netspots.stop_by_id(id).await {
         Ok(status) => Some(Json(status)),
         Err(_) => None,
     }
@@ -58,7 +58,7 @@ pub async fn stop_by_id(state: &State<NetspotControlState>, id: i32) -> Option<J
 #[openapi(tag = "Status")]
 #[get("/netspots")]
 pub async fn status_all(state: &State<NetspotControlState>) -> Json<Statuses> {
-    Json(state.netspots.status_all())
+    Json(state.netspots.status_all().await)
 }
 
 /// # Restart all netspot services
@@ -67,8 +67,8 @@ pub async fn status_all(state: &State<NetspotControlState>) -> Json<Statuses> {
 #[openapi(tag = "Status")]
 #[get("/netspots/restart")]
 pub async fn restart_all(state: &State<NetspotControlState>) -> Json<Statuses> {
-    state.netspots.restart_all();
-    Json(state.netspots.status_all())
+    state.netspots.restart_all().await;
+    Json(state.netspots.status_all().await)
 }
 
 /// # Start all netspot services
@@ -77,8 +77,8 @@ pub async fn restart_all(state: &State<NetspotControlState>) -> Json<Statuses> {
 #[openapi(tag = "Status")]
 #[get("/netspots/start")]
 pub async fn start_all(state: &State<NetspotControlState>) -> Json<Statuses> {
-    state.netspots.start_all();
-    Json(state.netspots.status_all())
+    state.netspots.start_all().await;
+    Json(state.netspots.status_all().await)
 }
 
 /// # Stop all netspot services
@@ -87,6 +87,6 @@ pub async fn start_all(state: &State<NetspotControlState>) -> Json<Statuses> {
 #[openapi(tag = "Status")]
 #[get("/netspots/stop")]
 pub async fn stop_all(state: &State<NetspotControlState>) -> Json<Statuses> {
-    state.netspots.stop_all();
-    Json(state.netspots.status_all())
+    state.netspots.stop_all().await;
+    Json(state.netspots.status_all().await)
 }

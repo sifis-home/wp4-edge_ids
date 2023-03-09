@@ -27,7 +27,7 @@ pub struct NetspotControlState {
 }
 
 impl NetspotControlState {
-    pub fn new() -> Result<NetspotControlState, String> {
+    pub async fn new() -> Result<NetspotControlState, String> {
         // Get database path from environment
         let database_file = match env::var("DB_FILE_PATH") {
             Ok(path) => path,
@@ -49,10 +49,10 @@ impl NetspotControlState {
         }
 
         // Forward path to alternative constructor
-        Self::new_with_db_url(database_file.as_str())
+        Self::new_with_db_url(database_file.as_str()).await
     }
 
-    pub fn new_with_db_url(database_url: &str) -> Result<NetspotControlState, String> {
+    pub async fn new_with_db_url(database_url: &str) -> Result<NetspotControlState, String> {
         // Create channels for broadcasting data and alarm messages
         let (messages_tx, _) = broadcast::channel::<Message>(16);
 
@@ -91,10 +91,11 @@ impl NetspotControlState {
             database.get_configurations()?,
             messages_tx,
             RunChecker::new(run_tx.subscribe()),
-        )?;
+        )
+        .await?;
 
         // Start all netspot processes we can
-        netspots.start_all();
+        netspots.start_all().await;
 
         // Complete
         println!("NetspotControlState started.");
@@ -110,7 +111,7 @@ impl NetspotControlState {
         println!("NetspotControlState shutdown requested...");
 
         // Request all netspot processes to stop
-        self.netspots.stop_all();
+        self.netspots.stop_all().await;
 
         // Send signal to stop workers and wait them to stop
         if self.run_tx.send(false).is_ok() {

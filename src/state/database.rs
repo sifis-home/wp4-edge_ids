@@ -413,20 +413,20 @@ fn cleanup_messages(db_connection: &DbConnection) {
         Ok(duration) => {
             // We remove all results that are older than one hour
             let older_than = (duration - Duration::from_secs(60 * 60)).as_nanos() as i64;
-            println!("Cleaning messages older than {}", older_than);
+            println!("Cleaning messages older than {older_than}.");
             let mut connection = db_connection.lock().unwrap();
             match diesel::delete(schema::alarms::dsl::alarms)
                 .filter(schema::alarms::time.lt(older_than))
                 .execute(&mut *connection)
             {
-                Ok(rows) => println!("{rows} alarms message(s) removed"),
+                Ok(rows) => println!("{rows} alarms message(s) removed."),
                 Err(err) => eprintln!("cleanup_messages error: {}", err),
             };
             match diesel::delete(schema::data::dsl::data)
                 .filter(schema::data::time.lt(older_than))
                 .execute(&mut *connection)
             {
-                Ok(rows) => println!("{rows} data message(s) removed"),
+                Ok(rows) => println!("{rows} data message(s) removed."),
                 Err(err) => eprintln!("cleanup_messages error: {}", err),
             };
         }
