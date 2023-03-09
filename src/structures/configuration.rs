@@ -88,7 +88,7 @@ agent_name = "{agent_name}"
         }
     }
 
-    pub fn make_toml(&self) -> String {
+    pub fn make_toml(&self, data_path: &str) -> String {
         format!(
             r#"[miner]
 device = "{device}"
@@ -99,8 +99,8 @@ timeout = "0s"
 {analyzer}
 
 [exporter.socket]
-data = "unix:///tmp/netspot_data.socket"
-alarm = "unix:///tmp/netspot_alarm.socket"
+data = "unix://{data_path}/netspot_data.socket"
+alarm = "unix://{data_path}/netspot_alarm.socket"
 tag = "{tag}"
 format = "json"
 {influxdb1}
@@ -295,7 +295,7 @@ max_excess = 1
 up = false
 "#;
         let config: NetspotConfig = serde_json::from_str(DEFAULT_NETSPOT_CONFIG_JSON).unwrap();
-        assert_eq!(config.make_toml(), expected);
+        assert_eq!(config.make_toml("/tmp"), expected);
     }
 
     #[test]
@@ -364,6 +364,6 @@ alert = true
 bounded = true
 max_excess = 200
 "#;
-        assert_eq!(config.make_toml(), expected);
+        assert_eq!(config.make_toml("/tmp"), expected);
     }
 }

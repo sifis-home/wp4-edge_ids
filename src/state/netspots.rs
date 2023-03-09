@@ -1,18 +1,19 @@
 mod net;
 
+use crate::api_v1::testing::TestAlarmMessage;
 use crate::state::netspots::net::SocketUse;
 use crate::structures::configuration::{NetspotConfig, NetspotConfigMap};
-use crate::structures::status::{ProcessStatus, Status, Statuses};
-
-use crate::api_v1::testing::TestAlarmMessage;
 use crate::structures::statistics::{AlarmMessage, Message, MessageType};
+use crate::structures::status::{ProcessStatus, Status, Statuses};
 use crate::tasks::RunChecker;
+
 use nix::sys::signal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
 use rocket::warn;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fs, io};
@@ -28,19 +29,27 @@ pub enum NetspotManagerError {
 }
 
 pub struct NetspotManager {
+    data_path: PathBuf,
     message_tx: Mutex<broadcast::Sender<Message>>,
     netspots_lock: RwLock<Netspots>,
 }
 
 impl NetspotManager {
     pub async fn new(
+        data_path: &Path,
         configurations: NetspotConfigMap,
         message_tx: broadcast::Sender<Message>,
         run_checker: RunChecker,
     ) -> Result<NetspotManager, String> {
-        net::start_listener_task(SocketUse::Alarm, message_tx.clone(), run_checker.clone())?;
-        net::start_listener_task(SocketUse::Data, message_tx.clone(), run_checker)?;
+        net::start_listener_task(
+            data_path,
+            SocketUse::Alarm,
+            message_tx.clone(),
+            run_checker.clone(),
+        )?;
+        net::start_listener_task(data_path, SocketUse::Data, message_tx.clone(), run_checker)?;
         let manager = NetspotManager {
+            data_path: PathBuf::from(data_path),
             message_tx: Mutex::new(message_tx),
             netspots_lock: RwLock::new(Netspots::new()),
         };
@@ -156,7 +165,7 @@ impl NetspotManager {
                     entry.into_mut().set_config(config);
                 }
                 Entry::Vacant(entry) => {
-                    entry.insert(NetspotProcess::from(id, config));
+                    entry.insert(NetspotProcess::from(&self.data_path, id, config));
                 }
             };
         }
@@ -166,22 +175,28 @@ impl NetspotManager {
 }
 
 pub struct NetspotProcess {
-    id: i32,
     config: NetspotConfig,
+    data_path: String,
+    id: i32,
     process: Option<Child>,
+    toml_file_path: String,
 }
 
 impl NetspotProcess {
-    fn from(id: i32, config: NetspotConfig) -> NetspotProcess {
+    fn from(data_path: &Path, id: i32, config: NetspotConfig) -> NetspotProcess {
+        let mut toml_file_path = PathBuf::from(data_path);
+        toml_file_path.push(format!("netspot_{id}.toml"));
         NetspotProcess {
-            id,
             config,
+            data_path: String::from(data_path.to_str().expect("valid str")),
+            id,
             process: None,
+            toml_file_path: String::from(toml_file_path.to_str().expect("valid str")),
         }
     }
 
-    fn toml_file_path(&self) -> String {
-        format!("/tmp/netspot_{}.toml", self.id)
+    fn toml_file_path(&self) -> &str {
+        &self.toml_file_path
     }
 
     fn process_status(&self) -> ProcessStatus {
@@ -208,11 +223,10 @@ impl NetspotProcess {
             return Ok(());
         }
 
-        let toml_file = self.toml_file_path();
-        fs::write(&toml_file, self.config.make_toml())?;
+        fs::write(&self.toml_file_path, self.config.make_toml(&self.data_path))?;
 
         match Command::new("netspot")
-            .args(["run", "-c", &toml_file])
+            .args(["run", "-c", &self.toml_file_path])
             .spawn()
         {
             Ok(process) => {

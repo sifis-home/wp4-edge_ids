@@ -1,7 +1,7 @@
 use crate::structures::statistics::{AlarmMessage, DataMessage, Message};
 use crate::tasks::RunChecker;
 use std::os::unix::io::AsRawFd;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::broadcast;
@@ -14,25 +14,27 @@ pub enum SocketUse {
 }
 
 pub fn start_listener_task(
+    data_path: &Path,
     socket_use: SocketUse,
     message_tx: broadcast::Sender<Message>,
     run_checker: RunChecker,
 ) -> Result<(), String> {
-    let socket_path = Path::new(match socket_use {
-        SocketUse::Alarm => "/tmp/netspot_alarm.socket",
-        SocketUse::Data => "/tmp/netspot_data.socket",
+    let mut socket_path = PathBuf::from(data_path);
+    socket_path.push(match socket_use {
+        SocketUse::Alarm => "netspot_alarm.socket",
+        SocketUse::Data => "netspot_data.socket",
     });
 
     // Listening fails if socket file already exists.
     // Therefore, we try to remove any existing socket file.
     if socket_path.exists() {
-        if let Err(err) = std::fs::remove_file(socket_path) {
+        if let Err(err) = std::fs::remove_file(&socket_path) {
             return Err(err.to_string());
         }
     }
 
     // Create a new listener socket
-    let listener = match UnixListener::bind(socket_path) {
+    let listener = match UnixListener::bind(&socket_path) {
         Ok(listener) => listener,
         Err(err) => return Err(err.to_string()),
     };

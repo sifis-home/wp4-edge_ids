@@ -16,9 +16,12 @@ pub async fn create_test_setup() -> TestSetup {
     test_db.push("test.db");
 
     // Creating state object
-    let state = NetspotControlState::new_with_db_url(test_db.to_str().expect("valid database url"))
-        .await
-        .expect("Valid state object");
+    let state = NetspotControlState::new_customized(
+        test_dir.path(),
+        test_db.to_str().expect("valid database url"),
+    )
+    .await
+    .expect("Valid state object");
 
     // Build test Client
     let client = Client::untracked(build_rocket(state))

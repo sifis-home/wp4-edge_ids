@@ -10,7 +10,7 @@ use crate::state::logger::message_printer;
 use crate::tasks::RunChecker;
 use database::Database;
 use netspots::NetspotManager;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{env, fs};
 use tokio::sync::{broadcast, watch};
 
@@ -48,11 +48,14 @@ impl NetspotControlState {
             }
         }
 
-        // Forward path to alternative constructor
-        Self::new_with_db_url(database_file.as_str()).await
+        // Forward data to customized constructor
+        Self::new_customized(Path::new("/tmp"), database_file.as_str()).await
     }
 
-    pub async fn new_with_db_url(database_url: &str) -> Result<NetspotControlState, String> {
+    pub async fn new_customized(
+        data_path: &Path,
+        database_url: &str,
+    ) -> Result<NetspotControlState, String> {
         // Create channels for broadcasting data and alarm messages
         let (messages_tx, _) = broadcast::channel::<Message>(16);
 
@@ -88,6 +91,7 @@ impl NetspotControlState {
 
         // Netspot manager has worker tasks for receiving messages from netspot processes
         let netspots = NetspotManager::new(
+            data_path,
             database.get_configurations()?,
             messages_tx,
             RunChecker::new(run_tx.subscribe()),
