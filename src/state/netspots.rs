@@ -6,6 +6,7 @@ use crate::structures::status::{ProcessStatus, Status, Statuses};
 
 use crate::api_v1::testing::TestAlarmMessage;
 use crate::structures::statistics::{AlarmMessage, Message, MessageType};
+use crate::tasks::RunChecker;
 use nix::sys::signal;
 use nix::sys::signal::Signal;
 use nix::unistd::Pid;
@@ -16,7 +17,7 @@ use std::sync::{Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fs, io};
 use tokio::process::{Child, Command};
-use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio::sync::{broadcast, oneshot};
 use tokio::time;
 
 // Configuration id is mapped to process handler
@@ -29,32 +30,19 @@ pub enum NetspotManagerError {
 pub struct NetspotManager {
     message_tx: Mutex<broadcast::Sender<Message>>,
     netspots_lock: RwLock<Netspots>,
-    shutdown_complete_tx: mpsc::Sender<()>,
 }
 
 impl NetspotManager {
     pub fn new(
         configurations: NetspotConfigMap,
         message_tx: broadcast::Sender<Message>,
-        shutdown_request_rx: broadcast::Receiver<()>,
-        shutdown_complete_tx: mpsc::Sender<()>,
+        run_checker: RunChecker,
     ) -> Result<NetspotManager, String> {
-        net::start_listener_task(
-            SocketUse::Alarm,
-            message_tx.clone(),
-            shutdown_request_rx.resubscribe(),
-            shutdown_complete_tx.clone(),
-        )?;
-        net::start_listener_task(
-            SocketUse::Data,
-            message_tx.clone(),
-            shutdown_request_rx,
-            shutdown_complete_tx.clone(),
-        )?;
+        net::start_listener_task(SocketUse::Alarm, message_tx.clone(), run_checker.clone())?;
+        net::start_listener_task(SocketUse::Data, message_tx.clone(), run_checker)?;
         let manager = NetspotManager {
             message_tx: Mutex::new(message_tx),
             netspots_lock: RwLock::new(Netspots::new()),
-            shutdown_complete_tx,
         };
         manager.update_all(configurations)?;
         Ok(manager)
@@ -135,7 +123,7 @@ impl NetspotManager {
     pub fn stop_all(&self) {
         let mut netspots = self.netspots_lock.write().unwrap();
         for (id, process) in netspots.iter_mut() {
-            if let Err(err) = process.stop(self.shutdown_complete_tx.clone()) {
+            if let Err(err) = process.stop() {
                 warn!("Error while stopping process {}: {}", id, err.to_string());
             }
         }
@@ -146,7 +134,7 @@ impl NetspotManager {
             // Using scope to remove write lock before reading status result
             let mut netspots = self.netspots_lock.write().unwrap();
             if let Some(process) = netspots.get_mut(&id) {
-                if let Err(err) = process.stop(self.shutdown_complete_tx.clone()) {
+                if let Err(err) = process.stop() {
                     warn!("Error while stopping process {}: {}", id, err.to_string());
                 }
             }
@@ -229,6 +217,7 @@ impl NetspotProcess {
         {
             Ok(process) => {
                 self.process = Some(process);
+                println!("Netspot configuration {} started correctly.", self.id);
                 Ok(())
             }
             Err(err) => Err(err),
@@ -243,13 +232,14 @@ impl NetspotProcess {
         }
     }
 
-    fn stop(&mut self, shutdown_complete_tx: mpsc::Sender<()>) -> Result<(), io::Error> {
+    fn stop(&mut self) -> Result<(), io::Error> {
         if self.process_status() != ProcessStatus::Running {
             return Ok(());
         }
         if let Some(mut process) = self.process.take() {
             // Copying id for the thread
             let netspot_id = self.id;
+
             // Run netspot shutdown in a separate task
             tokio::spawn(async move {
                 // Try to terminate netspot with SIGINT
@@ -276,7 +266,6 @@ impl NetspotProcess {
                         let _ = process.kill().await ;
                     }
                 }
-                drop(shutdown_complete_tx);
             });
         }
         assert!(self.process.is_none());

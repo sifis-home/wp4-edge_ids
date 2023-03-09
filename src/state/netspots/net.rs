@@ -1,9 +1,10 @@
 use crate::structures::statistics::{AlarmMessage, DataMessage, Message};
+use crate::tasks::RunChecker;
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 
 // Socket use decides location for the Unix socket file
 #[derive(Copy, Clone)]
@@ -15,8 +16,7 @@ pub enum SocketUse {
 pub fn start_listener_task(
     socket_use: SocketUse,
     message_tx: broadcast::Sender<Message>,
-    mut shutdown_request_rx: broadcast::Receiver<()>,
-    shutdown_complete_tx: mpsc::Sender<()>,
+    run_checker: RunChecker,
 ) -> Result<(), String> {
     let socket_path = Path::new(match socket_use {
         SocketUse::Alarm => "/tmp/netspot_alarm.socket",
@@ -42,70 +42,55 @@ pub fn start_listener_task(
         SocketUse::Data => "Data",
     };
 
-    // Start listener
-    tokio::spawn(async move {
-        println!("{} socket listener started.", name);
-        tokio::select! {
-            _ = listener_loop(listener, socket_use, message_tx,
-                shutdown_request_rx.resubscribe(), shutdown_complete_tx.clone(), name) => {}
-            _ = shutdown_request_rx.recv() => {}
-        }
-        println!("{} socket listener stopped.", name);
-        drop(shutdown_complete_tx);
-    });
+    // Start listener task
+    tokio::spawn(listener_task(
+        listener,
+        socket_use,
+        message_tx,
+        name,
+        run_checker,
+    ));
 
     Ok(())
 }
 
-async fn listener_loop(
+async fn listener_task(
     listener: UnixListener,
     socket_use: SocketUse,
     message_tx: broadcast::Sender<Message>,
-    shutdown_request_rx: broadcast::Receiver<()>,
-    shutdown_complete_tx: mpsc::Sender<()>,
     name: &'static str,
+    mut run_checker: RunChecker,
 ) {
-    loop {
-        match listener.accept().await {
-            Ok((stream, _)) => {
-                // Clone channels for the new task
-                let shutdown_request_rx = shutdown_request_rx.resubscribe();
-                let shutdown_complete_tx = shutdown_complete_tx.clone();
-                let message_tx = message_tx.clone();
-                // Start a new task for the connection
-                tokio::spawn(async move {
-                    handle_connection(
-                        stream,
-                        socket_use,
-                        message_tx,
-                        shutdown_request_rx,
-                        shutdown_complete_tx,
-                        name,
-                    )
-                    .await;
-                });
+    println!("{name} socket listener started.");
+    while run_checker.keep_running() {
+        tokio::select! {
+            result = listener.accept() => {
+                match result {
+                    Ok((stream, _)) => { tokio::spawn(handle_connection(stream, socket_use, message_tx.clone(), name, run_checker.clone())); }
+                    Err(err) => {
+                        eprintln!("Listener error: {}", err);
+                        break;
+                    }
+                }
             }
-            Err(err) => {
-                eprintln!("Listener error: {}", err);
-                break;
-            }
+            _ = run_checker.shutdown_recv() => {},
         }
     }
+    println!("{name} socket listener stopped.");
 }
 
 async fn handle_connection(
     stream: UnixStream,
     socket_use: SocketUse,
     message_tx: broadcast::Sender<Message>,
-    mut shutdown_request_rx: broadcast::Receiver<()>,
-    shutdown_complete_tx: mpsc::Sender<()>,
     name: &'static str,
+    mut run_checker: RunChecker,
 ) {
     let fd = stream.as_raw_fd();
     println!("{} connection in file descriptor {} connected.", name, fd);
     let mut reader = BufReader::new(stream);
     let mut buffer = Vec::new();
-    loop {
+    while run_checker.keep_running() {
         tokio::select! {
             result = reader.read_until(b'}', &mut buffer) => {
                 match result {
@@ -120,16 +105,13 @@ async fn handle_connection(
                     }
                 }
             }
-            _ = shutdown_request_rx.recv() => {
-                break;
-            }
+            _ = run_checker.shutdown_recv() => {},
         }
     }
     println!(
         "{} connection in file descriptor {} disconnected.",
         name, fd
     );
-    drop(shutdown_complete_tx);
 }
 
 fn parse_and_send(

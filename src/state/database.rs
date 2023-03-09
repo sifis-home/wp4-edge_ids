@@ -13,13 +13,12 @@ use diesel::{Connection, SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
 use crate::structures::webhooks::{Webhook, WebhookItem, WebhookList, Webhooks};
+use crate::tasks::RunChecker;
 use std::collections::HashMap;
 use std::error::Error;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime};
-use std::{env, fs};
-use tokio::sync::{broadcast, mpsc};
+use std::time::{Duration, SystemTime};
+use tokio::sync::broadcast;
 
 pub enum DatabaseError {
     NotFound,
@@ -35,31 +34,12 @@ pub struct Database {
 
 impl Database {
     pub fn new(
+        database_url: &str,
         messages_rx: broadcast::Receiver<Message>,
-        shutdown_complete_tx: mpsc::Sender<()>,
+        run_checker: RunChecker,
     ) -> Result<Database, String> {
-        // Get database path
-        let database_file = match env::var("DB_FILE_PATH") {
-            Ok(path) => path,
-            Err(_) => {
-                return Err("DB_FILE_PATH environment variable must be set".to_string());
-            }
-        };
-
-        // Ensure that path to database file exits
-        match PathBuf::from(database_file.as_str()).parent() {
-            None => {
-                return Err("Invalid DB_FILE_PATH environment variable".to_string());
-            }
-            Some(path) => {
-                if let Err(err) = fs::create_dir_all(path) {
-                    return Err(format!("Could not create database path: {}", err));
-                }
-            }
-        }
-
         // Get database connection
-        let mut connection = match SqliteConnection::establish(&database_file) {
+        let mut connection = match SqliteConnection::establish(database_url) {
             Ok(connection) => connection,
             Err(err) => return Err(format!("Could not open database: {}", err)),
         };
@@ -76,7 +56,7 @@ impl Database {
         tokio::spawn(database_writer(
             db_connection.clone(),
             messages_rx,
-            shutdown_complete_tx,
+            run_checker,
         ));
 
         // Return complete database
@@ -401,32 +381,31 @@ impl Database {
 async fn database_writer(
     db_connection: DbConnection,
     mut message_rx: broadcast::Receiver<Message>,
-    _shutdown_complete_tx: mpsc::Sender<()>,
+    mut run_checker: RunChecker,
 ) {
     println!("Database writer started.");
-
-    // We run clean up routine in about one minute intervals
-    let mut timer = Instant::now();
-    let cleanup_after = Duration::from_secs(60);
-
-    // TODO: Collect multiple messages of and write them at once
-    while let Ok(message) = message_rx.recv().await {
-        if let Ok(json) = message.to_json() {
-            match message {
-                Message::Alarm(message) => {
-                    write_alarms(&db_connection, message.time, &json);
-                }
-                Message::Data(message) => {
-                    write_data(&db_connection, message.time, &json);
-                }
-            }
-            if timer.elapsed() > cleanup_after {
-                timer = Instant::now();
-                cleanup_messages(&db_connection);
-            }
+    let mut cleanup_interval = tokio::time::interval(Duration::from_secs(60));
+    while run_checker.keep_running() {
+        tokio::select! {
+            Ok(message) = message_rx.recv() => write_message(message, &db_connection),
+            _ = cleanup_interval.tick() => cleanup_messages(&db_connection),
+            _ = run_checker.shutdown_recv() => {},
         }
     }
     println!("Database writer stopped.");
+}
+
+fn write_message(message: Message, db_connection: &DbConnection) {
+    if let Ok(json) = message.to_json() {
+        match message {
+            Message::Alarm(message) => {
+                write_alarms(db_connection, message.time, &json);
+            }
+            Message::Data(message) => {
+                write_data(db_connection, message.time, &json);
+            }
+        }
+    }
 }
 
 fn cleanup_messages(db_connection: &DbConnection) {

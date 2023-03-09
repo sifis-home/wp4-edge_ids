@@ -98,3 +98,15 @@ pub async fn netspot_delete(
     }
     Err(Status::BadRequest)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::api_v1::tests_common::{create_test_setup, stop_test_setup};
+    use rocket::async_test;
+
+    #[async_test]
+    async fn test_configuration_crud() {
+        let test_setup = create_test_setup().await;
+        stop_test_setup(test_setup).await;
+    }
+}
