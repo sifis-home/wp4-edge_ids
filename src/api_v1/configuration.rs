@@ -192,7 +192,7 @@ mod tests {
             .await
             .expect("Valid JSON");
         assert_eq!(config.configuration.name, "Test Changed");
-        assert_eq!(config.configuration.enabled, false);
+        assert!(!config.configuration.enabled);
 
         // 6. DELETE  /netspot/2   : Deletes test configuration
         let response = client.delete("/v1/netspot/2").dispatch().await;

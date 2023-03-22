@@ -291,7 +291,7 @@
     },
     "/netspots/data" : {
       "get" : {
-        "description" : "Reads recorded nestpot statistics.\n\nWe can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
+        "description" : "Reads recorded netspot statistics.\n\nWe can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
         "parameters" : [ {
           "description" : "Unix timestamp in nanoseconds. We can use the last timestamp from the previous request to get only new items after the timestamp.",
           "explode" : true,
@@ -367,7 +367,7 @@
     },
     "/netspots/alarms" : {
       "get" : {
-        "description" : "Reads recorded alarms from nestpot statistics.\n\nWe can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
+        "description" : "Reads recorded alarms from netspot statistics.\n\nWe can use parameters to limit which results are returned. Without parameters, only 100 last items are returned.",
         "parameters" : [ {
           "description" : "Unix timestamp in nanoseconds. We can use the last timestamp from the previous request to get only new items after the timestamp.",
           "explode" : true,
