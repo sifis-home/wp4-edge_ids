@@ -174,6 +174,7 @@ impl NetspotManager {
     }
 }
 
+#[derive(Debug)]
 pub struct NetspotProcess {
     config: NetspotConfig,
     data_path: String,
@@ -227,6 +228,7 @@ impl NetspotProcess {
 
         match Command::new("netspot")
             .args(["run", "-c", &self.toml_file_path])
+            .kill_on_drop(true)
             .spawn()
         {
             Ok(process) => {
