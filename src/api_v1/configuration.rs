@@ -101,9 +101,9 @@ pub async fn netspot_delete(
 
 #[cfg(test)]
 mod tests {
-    use crate::api_v1::tests_common::TestSetup;
     use crate::structures::configuration::NetspotConfig;
     use crate::structures::status::Statuses;
+    use crate::tests_common::TestSetup;
     use rocket::http::Status;
 
     // This test does the following:

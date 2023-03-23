@@ -93,8 +93,8 @@ pub async fn stop_all(state: &State<NetspotControlState>) -> Json<Statuses> {
 
 #[cfg(test)]
 mod tests {
-    use crate::api_v1::tests_common::{statuses_to_hash_map, TestSetup};
     use crate::structures::status::{ProcessStatus, Status, Statuses};
+    use crate::tests_common::{statuses_to_hash_map, TestSetup};
     use rocket::http;
 
     // This test does the following:

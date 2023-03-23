@@ -32,6 +32,3 @@ pub fn routes() -> Vec<rocket::Route> {
         testing::send_test_alarm,
     ]
 }
-
-#[cfg(test)]
-pub mod tests_common;

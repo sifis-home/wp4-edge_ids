@@ -21,7 +21,7 @@ pub async fn interfaces() -> Result<Json<Vec<String>>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::api_v1::tests_common::TestSetup;
+    use crate::tests_common::TestSetup;
     use rocket::http::Status;
 
     #[tokio::test]

@@ -50,8 +50,8 @@ pub async fn get_data(
 
 #[cfg(test)]
 mod tests {
-    use crate::api_v1::tests_common::TestSetup;
     use crate::structures::statistics::{AlarmMessages, DataMessages};
+    use crate::tests_common::TestSetup;
     use rocket::http::Status;
 
     #[tokio::test]

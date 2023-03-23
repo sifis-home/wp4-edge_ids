@@ -3,6 +3,9 @@ mod state;
 mod structures;
 mod tasks;
 
+#[cfg(test)]
+pub mod tests_common;
+
 use crate::state::NetspotControlState;
 use dotenvy::dotenv;
 use rocket::fs::{relative, FileServer};

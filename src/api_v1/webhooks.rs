@@ -113,10 +113,10 @@ pub async fn webhooks_list(
 
 #[cfg(test)]
 mod tests {
-    use crate::api_v1::tests_common::TestSetup;
     use crate::structures::webhooks::{
         Webhook, WebhookHeaders, WebhookList, WebhookRequestMethod, WebhookStatsType,
     };
+    use crate::tests_common::TestSetup;
     use rocket::http::Status;
 
     // This test does the following:

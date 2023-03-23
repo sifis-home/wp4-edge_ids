@@ -21,7 +21,7 @@ sudo apt install python3-venv
 Now let's go to the test folder and enable the virtual environment
 
 ```bash
-cd /path/to/wp4-edge_ids/test/python
+cd /path/to/wp4-edge_ids/tests/python
 python3 -m venv venv
 source venv/bin/activate
 ```
