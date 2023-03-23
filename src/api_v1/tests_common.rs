@@ -1,10 +1,12 @@
 use crate::build_rocket;
 use crate::state::NetspotControlState;
+use crate::structures::status::{Status, Statuses};
+
 use rocket::local::asynchronous::Client;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
-#[derive(Debug)]
 pub struct TestSetup {
     pub client: Client,
     pub test_dir: TempDir,
@@ -39,4 +41,12 @@ impl TestSetup {
             state.shutdown().await;
         }
     }
+}
+
+pub fn statuses_to_hash_map(statuses: Statuses) -> HashMap<i32, Status> {
+    let mut hash_map = HashMap::new();
+    for status in statuses {
+        hash_map.insert(status.id, status);
+    }
+    hash_map
 }

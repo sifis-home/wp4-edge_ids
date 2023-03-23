@@ -94,7 +94,6 @@ mod tests {
             .into_json::<AlarmMessages>()
             .await
             .expect("Valid JSON");
-        println!("{messages:#?}");
         assert_eq!(messages.len(), 1);
         assert_eq!(messages[0].name, "Test");
 
