@@ -10,7 +10,7 @@ use crate::state::logger::message_printer;
 use crate::tasks::RunChecker;
 use database::Database;
 use netspots::NetspotManager;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::{env, fs};
 use tokio::sync::{broadcast, watch};
 
@@ -29,17 +29,30 @@ pub struct NetspotControlState {
 impl NetspotControlState {
     pub async fn new() -> Result<NetspotControlState, String> {
         // Get database path from environment
-        let database_file = match env::var("DB_FILE_PATH") {
+        let database_path = match env::var("DB_FILE_PATH") {
             Ok(path) => path,
             Err(_) => {
                 return Err("DB_FILE_PATH environment variable must be set".to_string());
             }
         };
 
-        // Ensure that path to database exists
-        match PathBuf::from(database_file.as_str()).parent() {
+        // Forward data to customized constructor
+        Self::new_customized(Path::new("/tmp"), Path::new(&database_path)).await
+    }
+
+    pub async fn new_customized(
+        runtime_path: &Path,
+        database_path: &Path,
+    ) -> Result<NetspotControlState, String> {
+        // Ensure that data path exists
+        if let Err(err) = fs::create_dir_all(runtime_path) {
+            return Err(format!("Could not create runtime path: {}", err));
+        }
+
+        // Ensure that database path exists
+        match database_path.parent() {
             None => {
-                return Err("Invalid DB_FILE_PATH environment variable".to_string());
+                return Err(format!("Invalid database path: {database_path:?}"));
             }
             Some(path) => {
                 if let Err(err) = fs::create_dir_all(path) {
@@ -48,14 +61,6 @@ impl NetspotControlState {
             }
         }
 
-        // Forward data to customized constructor
-        Self::new_customized(Path::new("/tmp"), database_file.as_str()).await
-    }
-
-    pub async fn new_customized(
-        data_path: &Path,
-        database_url: &str,
-    ) -> Result<NetspotControlState, String> {
         // Create channels for broadcasting data and alarm messages
         let (messages_tx, _) = broadcast::channel::<Message>(16);
 
@@ -77,7 +82,7 @@ impl NetspotControlState {
 
         // Database has worker task for writing messages to the database.
         let database = Database::new(
-            database_url,
+            database_path.to_str().ok_or("Invalid DB path")?,
             messages_tx.subscribe(),
             RunChecker::new(run_tx.subscribe()),
         )?;
@@ -91,7 +96,7 @@ impl NetspotControlState {
 
         // Netspot manager has worker tasks for receiving messages from netspot processes
         let netspots = NetspotManager::new(
-            data_path,
+            runtime_path,
             database.get_configurations()?,
             messages_tx,
             RunChecker::new(run_tx.subscribe()),

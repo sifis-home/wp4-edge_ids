@@ -1,3 +1,13 @@
+use crate::state::NetspotControlState;
+use std::path::{Path, PathBuf};
+
+use clap::Parser;
+use dotenvy::dotenv;
+use rocket::fs::{relative, FileServer};
+use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+
 mod api_v1;
 mod state;
 mod structures;
@@ -6,16 +16,41 @@ mod tasks;
 #[cfg(test)]
 pub mod tests_common;
 
-use crate::state::NetspotControlState;
-use dotenvy::dotenv;
-use rocket::fs::{relative, FileServer};
-use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
-use rocket_okapi::settings::UrlObject;
-use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+/// Command line options
+#[derive(Debug, Parser)]
+#[command(name = "Netspot Control")]
+#[command(
+    about,
+    long_about = "The netspot is a simple anomaly-based network IDS. 
+
+This server allows configuring multiple netspot instances for scanning
+the network. In addition, the server collects statistics and makes them 
+available under status endpoints. Clients can also configure webhooks
+to receive messages in near real-time.
+
+Server configuration can be done using Rocket environment variables.
+See https://rocket.rs/v0.5-rc/guide/configuration/
+
+In addition, the following options are available as command-line
+arguments.",
+    version
+)]
+struct Cli {
+    /// Directory, where the runtime files are stored
+    #[arg(short, long)]
+    runtime_path: Option<PathBuf>,
+
+    /// Database file path
+    #[arg(short, long)]
+    db_path: Option<PathBuf>,
+}
 
 /// Entry Point for the Server Program
 #[rocket::main]
 async fn main() {
+    // Parsing command line arguments
+    let cli = Cli::parse();
+
     println!("NetspotControl started.");
 
     // Read .env file when available
@@ -24,7 +59,14 @@ async fn main() {
     }
 
     // Creating State object for the server
-    let state = match NetspotControlState::new().await {
+    let state = if cli.db_path.is_none() && cli.runtime_path.is_none() {
+        NetspotControlState::new().await
+    } else {
+        let runtime_path = cli.runtime_path.unwrap_or(PathBuf::from("/tmp"));
+        let db_path = cli.db_path.unwrap_or(Path::join(&runtime_path, "test.db"));
+        NetspotControlState::new_customized(&runtime_path, &db_path).await
+    };
+    let state = match state {
         Ok(state) => state,
         Err(err) => {
             eprintln!("NetspotControlState had an error: {}", err);
