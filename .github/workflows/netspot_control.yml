@@ -169,6 +169,11 @@ jobs:
         DEBIAN_FRONTEND=noninteractive sudo apt -y update
         DEBIAN_FRONTEND=noninteractive sudo apt -y install libpcap0.8-dev
 
+    - name: Install netspot binary
+      run: |
+        curl -Lo netspot 'https://github.com/asiffer/netspot/releases/download/v2.1.2/netspot-2.1.2-amd64-linux-static'
+        install -vm 755 netspot /usr/bin/netspot
+
     - name: Install Rust stable
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -216,27 +221,26 @@ jobs:
               --token YOUR_COVDIR_TOKEN --ignore-not-existing --ignore "/*" \
               --ignore "../*" -o covdir.json
 
-    # TODO: Add more unit test to improve code coverage
-    #- name: Evaluate code coverage value
-    #  shell: bash
-    #  run: |
-    #    # Retrieve code coverage associated to the repository
-    #    FLOAT_COVERAGE=$(jq '.coveragePercent' covdir.json)
-    #    # Round the float value to the nearest value
-    #    COVERAGE_OUTPUT=$(printf "%.0f" $FLOAT_COVERAGE)
-    #    # If code coverage >= 80, green traffic light
-    #    if [ $COVERAGE_OUTPUT -ge 80 ]
-    #    then
-    #        echo "$COVERAGE_OUTPUT > 80 --> Green"
-    #    # If code coverage is >=60 but < 80, orange traffic light
-    #    elif [ $COVERAGE_OUTPUT -ge 60 ]
-    #    then
-    #        echo "60 <= $COVERAGE_OUTPUT < 80 --> Orange"
-    #    # Otherwise, red traffic light
-    #    else
-    #        echo "$COVERAGE_OUTPUT < 60 --> Red"
-    #        exit 1
-    #    fi
+    - name: Evaluate code coverage value
+      shell: bash
+      run: |
+        # Retrieve code coverage associated to the repository
+        FLOAT_COVERAGE=$(jq '.coveragePercent' covdir.json)
+        # Round the float value to the nearest value
+        COVERAGE_OUTPUT=$(printf "%.0f" $FLOAT_COVERAGE)
+        # If code coverage >= 80, green traffic light
+        if [ $COVERAGE_OUTPUT -ge 80 ]
+        then
+            echo "$COVERAGE_OUTPUT > 80 --> Green"
+        # If code coverage is >=60 but < 80, orange traffic light
+        elif [ $COVERAGE_OUTPUT -ge 60 ]
+        then
+            echo "60 <= $COVERAGE_OUTPUT < 80 --> Orange"
+        # Otherwise, red traffic light
+        else
+            echo "$COVERAGE_OUTPUT < 60 --> Red"
+            exit 1
+        fi
 
   weighted-code-coverage-ubuntu:
 
@@ -251,6 +255,11 @@ jobs:
       run: |
         DEBIAN_FRONTEND=noninteractive sudo apt -y update
         DEBIAN_FRONTEND=noninteractive sudo apt -y install libpcap0.8-dev
+
+    - name: Install netspot binary
+      run: |
+        curl -Lo netspot 'https://github.com/asiffer/netspot/releases/download/v2.1.2/netspot-2.1.2-amd64-linux-static'
+        install -vm 755 netspot /usr/bin/netspot
 
     - name: Install Rust stable
       uses: dtolnay/rust-toolchain@stable
