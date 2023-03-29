@@ -12,12 +12,14 @@ use tokio::io::{AsyncBufReadExt, BufReader, Lines};
 use tokio::process::{ChildStderr, ChildStdout};
 use tokio::time::timeout;
 
+mod webhooks;
+
 #[tokio::test]
 async fn test_server_binary() -> Result<(), Box<dyn Error>> {
     // Running with valgrind?
     if let Ok(value) = std::env::var("LD_PRELOAD") {
         if value.contains("/valgrind/") || value.contains("/vgpreload") {
-            println!("The test was skipped because we cannot send SIGTERM for");
+            println!("The test was skipped because we cannot send SIGINT for");
             println!("the server when it is run within the Valgrind checking tool.");
             return Ok(());
         }
@@ -97,6 +99,9 @@ async fn test_server_binary() -> Result<(), Box<dyn Error>> {
     {
         return Err("Alarm message test timed out".into());
     };
+
+    // Testing webhooks
+    webhooks::test().await?;
 
     // Testing the graceful shutdown
     let server_pid = Pid::from_raw(server.id().unwrap() as i32);
