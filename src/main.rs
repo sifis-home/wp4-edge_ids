@@ -7,6 +7,7 @@ use rocket::fs::{relative, FileServer};
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, HideShowConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+use tokio::task::JoinHandle;
 
 mod api_v1;
 mod state;
@@ -43,6 +44,10 @@ struct Cli {
     /// Database file path
     #[arg(short, long)]
     db_path: Option<PathBuf>,
+
+    /// Automatic shutdown after <SECONDS>
+    #[arg(long = "shutdown-after")]
+    seconds: Option<u64>,
 }
 
 /// Entry Point for the Server Program
@@ -75,7 +80,31 @@ async fn main() {
     };
 
     // Launch server
-    let launch_result = build_rocket(state).launch().await;
+    let mut shutdown_handle: Option<JoinHandle<()>> = None;
+    let launch_result = match cli.seconds {
+        None => {
+            // Keep running until SIGINT or SIGTERM
+            build_rocket(state).launch().await
+        }
+        Some(seconds) => {
+            // Automatic shutdown after given seconds
+            let rocket = match build_rocket(state).ignite().await {
+                Ok(rocket) => rocket,
+                Err(err) => {
+                    eprintln!("Could not ignite Rocket server: {}", err);
+                    return;
+                }
+            };
+
+            let shutdown = rocket.shutdown();
+            shutdown_handle = Some(tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(seconds)).await;
+                shutdown.notify();
+            }));
+
+            rocket.launch().await
+        }
+    };
 
     // Print error if launching server failed
     match launch_result {
@@ -89,6 +118,12 @@ async fn main() {
             eprintln!("Rocket had an error: {}", err);
         }
     };
+
+    // Ensure that shutdown notify thread is finished
+    if let Some(handle) = shutdown_handle {
+        handle.await.unwrap();
+    }
+
     println!("NetspotControl Stopped.");
 }
 

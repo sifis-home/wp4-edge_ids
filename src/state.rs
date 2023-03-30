@@ -61,11 +61,11 @@ impl NetspotControlState {
             }
         }
 
-        // Create channels for broadcasting data and alarm messages
-        let (messages_tx, _) = broadcast::channel::<Message>(16);
-
         // Create channel for letting worker threads to know when to stop
         let (run_tx, _) = watch::channel(true);
+
+        // Create channels for broadcasting data and alarm messages
+        let (messages_tx, _) = broadcast::channel::<Message>(16);
 
         // Check if SHOW_NETSPOT_MESSAGES environment variable is set
         if let Ok(value) = env::var("SHOW_NETSPOT_MESSAGES") {
