@@ -173,6 +173,7 @@ jobs:
       run: |
         curl -Lo netspot 'https://github.com/asiffer/netspot/releases/download/v2.1.2/netspot-2.1.2-amd64-linux-static'
         sudo install -vm 755 netspot /usr/bin/netspot
+        sudo setcap cap_net_raw,cap_net_admin+eip /usr/bin/netspot
 
     - name: Install Rust stable
       uses: dtolnay/rust-toolchain@stable
@@ -260,6 +261,7 @@ jobs:
       run: |
         curl -Lo netspot 'https://github.com/asiffer/netspot/releases/download/v2.1.2/netspot-2.1.2-amd64-linux-static'
         sudo install -vm 755 netspot /usr/bin/netspot
+        sudo setcap cap_net_raw,cap_net_admin+eip /usr/bin/netspot
 
     - name: Install Rust stable
       uses: dtolnay/rust-toolchain@stable
