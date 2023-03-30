@@ -1,14 +1,18 @@
 pub mod database;
+pub mod logger;
 pub mod netspots;
 pub mod webhooks;
 
 use crate::state::webhooks::WebhookManager;
 use crate::structures::statistics::Message;
 
+use crate::state::logger::message_printer;
+use crate::tasks::RunChecker;
 use database::Database;
 use netspots::NetspotManager;
-use std::env;
-use tokio::sync::{broadcast, mpsc};
+use std::path::Path;
+use std::{env, fs};
+use tokio::sync::{broadcast, watch};
 
 // Netspot Control State
 //--------------------------------------------------------------------------------------------------
@@ -18,13 +22,47 @@ pub struct NetspotControlState {
     pub database: Database,
     pub webhooks: WebhookManager,
 
-    // Broadcasting shutdown signal to all worker tasks
-    shutdown_request_tx: broadcast::Sender<()>,
+    /// Signaling worker tasks to stop when shutdown is called
+    run_tx: watch::Sender<bool>,
 }
 
 impl NetspotControlState {
-    pub fn new(shutdown_complete_tx: mpsc::Sender<()>) -> Result<NetspotControlState, String> {
-        println!("NetspotControl started.");
+    pub async fn new() -> Result<NetspotControlState, String> {
+        // Get database path from environment
+        let database_path = match env::var("DB_FILE_PATH") {
+            Ok(path) => path,
+            Err(_) => {
+                return Err("DB_FILE_PATH environment variable must be set".to_string());
+            }
+        };
+
+        // Forward data to customized constructor
+        Self::new_customized(Path::new("/tmp"), Path::new(&database_path)).await
+    }
+
+    pub async fn new_customized(
+        runtime_path: &Path,
+        database_path: &Path,
+    ) -> Result<NetspotControlState, String> {
+        // Ensure that data path exists
+        if let Err(err) = fs::create_dir_all(runtime_path) {
+            return Err(format!("Could not create runtime path: {}", err));
+        }
+
+        // Ensure that database path exists
+        match database_path.parent() {
+            None => {
+                return Err(format!("Invalid database path: {database_path:?}"));
+            }
+            Some(path) => {
+                if let Err(err) = fs::create_dir_all(path) {
+                    return Err(format!("Could not create database path: {}", err));
+                }
+            }
+        }
+
+        // Create channel for letting worker threads to know when to stop
+        let (run_tx, _) = watch::channel(true);
 
         // Create channels for broadcasting data and alarm messages
         let (messages_tx, _) = broadcast::channel::<Message>(16);
@@ -36,74 +74,59 @@ impl NetspotControlState {
                     // Printing received messages to stdout
                     tokio::spawn(message_printer(
                         messages_tx.subscribe(),
-                        shutdown_complete_tx.clone(),
+                        RunChecker::new(run_tx.subscribe()),
                     ));
                 }
             }
         };
 
-        // Create shutdown request channel
-        let (shutdown_request_tx, _) = broadcast::channel(1);
-
         // Database has worker task for writing messages to the database.
-        let database = Database::new(messages_tx.subscribe(), shutdown_complete_tx.clone())?;
+        let database = Database::new(
+            database_path.to_str().ok_or("Invalid DB path")?,
+            messages_tx.subscribe(),
+            RunChecker::new(run_tx.subscribe()),
+        )?;
 
         // Webhook manager has worker task for sending messages.
         let webhooks = WebhookManager::new(
             database.get_webhooks()?,
             messages_tx.subscribe(),
-            shutdown_complete_tx.clone(),
+            RunChecker::new(run_tx.subscribe()),
         );
 
         // Netspot manager has worker tasks for receiving messages from netspot processes
         let netspots = NetspotManager::new(
+            runtime_path,
             database.get_configurations()?,
             messages_tx,
-            shutdown_request_tx.subscribe(),
-            shutdown_complete_tx,
-        )?;
+            RunChecker::new(run_tx.subscribe()),
+        )
+        .await?;
 
         // Start all netspot processes we can
-        netspots.start_all();
+        netspots.start_all().await;
+
+        // Complete
+        println!("NetspotControlState started.");
         Ok(NetspotControlState {
             database,
             netspots,
             webhooks,
-            shutdown_request_tx,
+            run_tx,
         })
     }
 
     pub async fn shutdown(&self) {
-        println!("NetspotControl shutdown requested...");
-        // Stop processes and then send shutdown request for worker tasks
-        self.netspots.stop_all();
-        let _ = self.shutdown_request_tx.send(());
-        // The main function waits for tasks to exit using the mpsc channel
-    }
-}
+        println!("NetspotControlState shutdown requested...");
 
-async fn message_printer(
-    mut message_rx: broadcast::Receiver<Message>,
-    _shutdown_complete_tx: mpsc::Sender<()>,
-) {
-    println!("Message printer started.");
-    use termion::{color, style};
-    while let Ok(message) = message_rx.recv().await {
-        if let Ok(json) = message.to_json() {
-            match message {
-                Message::Alarm(_) => {
-                    println!(
-                        "{}Alarm: {}{}",
-                        color::Fg(color::Yellow),
-                        json,
-                        style::Reset
-                    );
-                }
-                Message::Data(_) => {
-                    println!("Data: {json}");
-                }
-            }
+        // Request all netspot processes to stop
+        self.netspots.stop_all().await;
+
+        // Send signal to stop workers and wait them to stop
+        if self.run_tx.send(false).is_ok() {
+            self.run_tx.closed().await;
         }
+
+        println!("NetspotControlState shutdown completed.")
     }
-    println!("Message printer stopped.")
 }

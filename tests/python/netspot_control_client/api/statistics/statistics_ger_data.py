@@ -70,7 +70,7 @@ def sync_detailed(
 ) -> Response[List["DataMessage"]]:
     """Read netspot statistics
 
-     Reads recorded nestpot statistics.
+     Reads recorded netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.
@@ -109,7 +109,7 @@ def sync(
 ) -> Optional[List["DataMessage"]]:
     """Read netspot statistics
 
-     Reads recorded nestpot statistics.
+     Reads recorded netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.
@@ -141,7 +141,7 @@ async def asyncio_detailed(
 ) -> Response[List["DataMessage"]]:
     """Read netspot statistics
 
-     Reads recorded nestpot statistics.
+     Reads recorded netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.
@@ -178,7 +178,7 @@ async def asyncio(
 ) -> Optional[List["DataMessage"]]:
     """Read netspot statistics
 
-     Reads recorded nestpot statistics.
+     Reads recorded netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.

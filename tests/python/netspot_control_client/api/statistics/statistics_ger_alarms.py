@@ -70,7 +70,7 @@ def sync_detailed(
 ) -> Response[List["AlarmMessage"]]:
     """Read alarms from netspot statistics
 
-     Reads recorded alarms from nestpot statistics.
+     Reads recorded alarms from netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.
@@ -109,7 +109,7 @@ def sync(
 ) -> Optional[List["AlarmMessage"]]:
     """Read alarms from netspot statistics
 
-     Reads recorded alarms from nestpot statistics.
+     Reads recorded alarms from netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.
@@ -141,7 +141,7 @@ async def asyncio_detailed(
 ) -> Response[List["AlarmMessage"]]:
     """Read alarms from netspot statistics
 
-     Reads recorded alarms from nestpot statistics.
+     Reads recorded alarms from netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.
@@ -178,7 +178,7 @@ async def asyncio(
 ) -> Optional[List["AlarmMessage"]]:
     """Read alarms from netspot statistics
 
-     Reads recorded alarms from nestpot statistics.
+     Reads recorded alarms from netspot statistics.
 
     We can use parameters to limit which results are returned. Without parameters, only 100 last items
     are returned.

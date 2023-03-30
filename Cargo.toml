@@ -1,20 +1,27 @@
 [package]
 name = "netspot_control"
 authors = ["Ossi Saukko <ossi.saukko@centria.fi>", "Olli Isohanni <olli.isohanni@centria.fi>"]
-version = "1.0.3"
+version = "1.1.0"
 edition = "2021"
 license-file = "LICENSE"
+description = "Server for controlling netspot IDS"
 
 [dependencies]
-diesel = { version = "2.0.3", features = ["sqlite"] }
-diesel_migrations = "2.0.0"
-dotenvy = "0.15.6"
-nix = { version = "0.26.2", features = ["signal"] }
-pcap = "1.0.0"
-reqwest = "0.11.14"
+clap = { version = "4.1", features = ["derive"] }
+diesel = { version = "2.0", features = ["sqlite"] }
+diesel_migrations = "2.0"
+dotenvy = "0.15"
+nix = { version = "0.26", features = ["signal"] }
+pcap = "1.0"
+reqwest = "0.11"
 rocket = { version = "0.5.0-rc.2", features = ["json"] }
 rocket_okapi = { version = "0.8.0-rc.2", features = ["rapidoc", "swagger"] }
-serde = "1.0.152"
-serde_json = "1.0.93"
-termion = "2.0.1"
-tokio = { version = "1.25.0", features = ["io-util", "net", "process", "sync", "time"] }
+serde = "1.0"
+serde_json = "1.0"
+termion = "2.0"
+tokio = { version = "1.27", features = ["io-util", "net", "process", "sync", "time"] }
+
+[dev-dependencies]
+assert_cmd = "2.0"
+tempfile = "3.4"
+actix-web = "4.3"

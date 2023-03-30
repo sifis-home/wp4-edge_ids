@@ -152,10 +152,13 @@ docker logs netspot_control --follow
 
 - [ ] CORS ?
 - [ ] Authorization ?
-- [ ] Integration tests
-- [ ] Re-generate GitHub actions with sifis-generate
+
+## Known Issues
+
+* Rocket and NetspotManager contain memory handling errors that occur with valgrind and address sanitizer.
 
 <!-- Links -->
+
 [actions]: https://github.com/sifis-home/wp4-edge_ids/actions
 [codecov]: https://codecov.io/gh/sifis-home/wp4-edge_ids
 [license]: LICENSE

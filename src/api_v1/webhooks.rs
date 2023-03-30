@@ -101,12 +101,183 @@ pub async fn webhook_delete(
 /// Lists installed webhooks by their id and names.
 /// Use ID to query detailed configuration when needed.
 #[openapi(tag = "Webhooks")]
-#[get("/netspot/webhooks")]
+#[get("/netspots/webhooks")]
 pub async fn webhooks_list(
     state: &State<NetspotControlState>,
 ) -> Result<Json<WebhookList>, Status> {
     match state.database.list_webhooks() {
         Ok(webhooks) => Ok(Json(webhooks)),
         Err(_) => Err(Status::InternalServerError),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::structures::webhooks::{
+        Webhook, WebhookHeaders, WebhookList, WebhookRequestMethod, WebhookStatsType,
+    };
+    use crate::tests_common::TestSetup;
+    use rocket::http::Status;
+
+    // This test does the following:
+    //
+    // 1. POST   /v1/netspots/webhook   : Adding a new webhook
+    // 2. GET    /v1/netspots/webhooks  : List available webhooks (should have one we added)
+    // 3. GET    /v1/netspots/webhook/1 : Should return the webhook we added
+    // 4. PUT    /v1/netspots/webhook/1 : Updating webhook
+    // 5. GET    /v1/netspots/webhook/1 : Should return the updated webhook
+    // 6. DELETE /v1/netspots/webhook/1 : Should delete webhook
+    // 7. GET    /v1/netspots/webhooks  : List available webhooks (should be empty)
+    #[tokio::test]
+    async fn test_webhooks_crud() {
+        let setup = TestSetup::new().await;
+        let client = &setup.client;
+        let webhook_uri = "/v1/netspots/webhook";
+        let webhooks_uri = "/v1/netspots/webhooks";
+        let webhook_1_uri = "/v1/netspots/webhook/1";
+
+        // 1. POST   /v1/netspots/webhook   : Adding a new webhook
+        let mut headers = WebhookHeaders::new();
+        headers.insert("foo".to_string(), "bar".to_string());
+        let mut webhook = Webhook {
+            name: "Test".to_string(),
+            address: "http://127.0.0.1:9020/alarms".to_string(),
+            method: WebhookRequestMethod::Post,
+            headers,
+            stats_type: WebhookStatsType::Alarms,
+        };
+        let response = client
+            .post(webhook_uri)
+            .body(serde_json::to_string(&webhook).unwrap())
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Created);
+
+        // 2. GET    /v1/netspots/webhooks  : List available webhooks (should have one we added)
+        let response = client.get(webhooks_uri).dispatch().await;
+        assert_eq!(response.status(), Status::Ok);
+        let webhooks = response.into_json::<WebhookList>().await.unwrap();
+        assert_eq!(webhooks.len(), 1);
+        assert_eq!(webhooks[0].name, "Test");
+
+        // 3. GET    /v1/netspots/webhook/1 : Should return the webhook we added
+        let response = client.get(webhook_1_uri).dispatch().await;
+        assert_eq!(response.status(), Status::Ok);
+        let webhook_recv = response.into_json::<Webhook>().await.unwrap();
+        assert_eq!(webhook, webhook_recv);
+
+        // 4. PUT    /v1/netspots/webhook/1 : Updating webhook
+        webhook.address = "http://127.0.0.1:9020/both".to_string();
+        webhook.headers.clear();
+        webhook.method = WebhookRequestMethod::Put;
+        webhook.name = "Test webhook".to_string();
+        webhook.stats_type = WebhookStatsType::Both;
+        let response = client
+            .put(webhook_1_uri)
+            .body(serde_json::to_string(&webhook).unwrap())
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::Ok);
+
+        // 5. GET    /v1/netspots/webhook/1 : Should return the updated webhook
+        let response = client.get(webhook_1_uri).dispatch().await;
+        assert_eq!(response.status(), Status::Ok);
+        let webhook_recv = response.into_json::<Webhook>().await.unwrap();
+        assert_eq!(webhook, webhook_recv);
+
+        // 6. DELETE /v1/netspots/webhook/1 : Should delete webhook
+        let response = client.delete(webhook_1_uri).dispatch().await;
+        assert_eq!(response.status(), Status::Ok);
+
+        // 7. GET    /v1/netspots/webhooks  : List available webhooks (should be empty)
+        let response = client.get(webhooks_uri).dispatch().await;
+        assert_eq!(response.status(), Status::Ok);
+        let webhooks = response.into_json::<WebhookList>().await.unwrap();
+        assert!(webhooks.is_empty());
+
+        setup.cleanup().await;
+    }
+
+    // This test does the following:
+    //
+    // 1.  POST   /v1/netspots/webhook     : With broken JSON, expecting 400 Bad Request
+    // 2.  POST   /v1/netspots/webhook     : With incomplete JSON, expecting 422 Unprocessable Entity
+    // 3.  GET    /v1/netspots/webhook/1   : Expecting 404 Not Found
+    // 4.  GET    /v1/netspots/webhook/foo : Expecting 400 Bad Request
+    // 5.  PUT    /v1/netspots/webhook/1   : Expecting 404 Not Found
+    // 6.  PUT    /v1/netspots/webhook/foo : Expecting 400 Bad Request
+    // 7.  DELETE /v1/netspots/webhook/1   : Expecting 404 Not Found
+    // 8.  DELETE /v1/netspots/webhook/foo : Expecting 400 Bad Request
+    // 9.  POST   /v1/netspots/webhook     : With valid JSON, expecting 201 Created
+    // 10. PUT    /v1/netspots/webhook/1   : With broken JSON, expecting 400 Bad Request
+    // 11. PUT    /v1/netspots/webhook/1   : With incomplete JSON, expecting 422 Unprocessable Entity
+    #[tokio::test]
+    async fn test_invalid_requests() {
+        let setup = TestSetup::new().await;
+        let client = &setup.client;
+        let webhook_uri = "/v1/netspots/webhook";
+        let webhook_1_uri = "/v1/netspots/webhook/1";
+        let webhook_foo_uri = "/v1/netspots/webhook/foo";
+        let broken_json = r#"{"name":broken_json}"#;
+        let incomplete_json = r#"{"name":"incomplete_json"}"#;
+        let valid_json = r#"{"name":"valid_json","address":"http://localhost:9000/"}"#;
+
+        // 1.  POST   /v1/netspots/webhook     : With broken JSON, expecting 400 Bad Request
+        let response = client.post(webhook_uri).body(broken_json).dispatch().await;
+        assert_eq!(response.status(), Status::BadRequest);
+
+        // 2.  POST   /v1/netspots/webhook     : With incomplete JSON, expecting 422 Unprocessable Entity
+        let response = client
+            .post(webhook_uri)
+            .body(incomplete_json)
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::UnprocessableEntity);
+
+        // 3.  GET    /v1/netspots/webhook/1   : Expecting 404 Not Found
+        let response = client.get(webhook_1_uri).dispatch().await;
+        assert_eq!(response.status(), Status::NotFound);
+
+        // 4.  GET    /v1/netspots/webhook/foo : Expecting 400 Bad Request
+        let response = client.get(webhook_foo_uri).dispatch().await;
+        assert_eq!(response.status(), Status::BadRequest);
+
+        // 5.  PUT    /v1/netspots/webhook/1   : Expecting 404 Not Found
+        let response = client.put(webhook_1_uri).body(valid_json).dispatch().await;
+        assert_eq!(response.status(), Status::NotFound);
+
+        // 6.  PUT    /v1/netspots/webhook/foo : Expecting 400 Bad Request
+        let response = client
+            .put(webhook_foo_uri)
+            .body(valid_json)
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::BadRequest);
+
+        // 7.  DELETE /v1/netspots/webhook/1   : Expecting 404 Not Found
+        let response = client.delete(webhook_1_uri).dispatch().await;
+        assert_eq!(response.status(), Status::NotFound);
+
+        // 8.  DELETE /v1/netspots/webhook/foo : Expecting 400 Bad Request
+        let response = client.delete(webhook_foo_uri).dispatch().await;
+        assert_eq!(response.status(), Status::BadRequest);
+
+        // 9.  POST   /v1/netspots/webhook     : With valid JSON, expecting 201 Created
+        let response = client.post(webhook_uri).body(valid_json).dispatch().await;
+        assert_eq!(response.status(), Status::Created);
+
+        // 10. PUT    /v1/netspots/webhook/1   : With broken JSON, expecting 400 Bad Request
+        let response = client.put(webhook_1_uri).body(broken_json).dispatch().await;
+        assert_eq!(response.status(), Status::BadRequest);
+
+        // 11. PUT    /v1/netspots/webhook/1   : With incomplete JSON, expecting 422 Unprocessable Entity
+        let response = client
+            .put(webhook_1_uri)
+            .body(incomplete_json)
+            .dispatch()
+            .await;
+        assert_eq!(response.status(), Status::UnprocessableEntity);
+
+        setup.cleanup().await;
     }
 }
