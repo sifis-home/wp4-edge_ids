@@ -1,4 +1,5 @@
 pub mod database;
+pub mod dht;
 pub mod logger;
 pub mod netspots;
 pub mod webhooks;
@@ -6,6 +7,7 @@ pub mod webhooks;
 use crate::state::webhooks::WebhookManager;
 use crate::structures::statistics::Message;
 
+use crate::state::dht::dht_message_sender;
 use crate::state::logger::message_printer;
 use crate::tasks::RunChecker;
 use database::Database;
@@ -27,7 +29,7 @@ pub struct NetspotControlState {
 }
 
 impl NetspotControlState {
-    pub async fn new() -> Result<NetspotControlState, String> {
+    pub async fn new(dht: Option<String>) -> Result<NetspotControlState, String> {
         // Get database path from environment
         let database_path = match env::var("DB_FILE_PATH") {
             Ok(path) => path,
@@ -37,10 +39,11 @@ impl NetspotControlState {
         };
 
         // Forward data to customized constructor
-        Self::new_customized(Path::new("/tmp"), Path::new(&database_path)).await
+        Self::new_customized(dht, Path::new("/tmp"), Path::new(&database_path)).await
     }
 
     pub async fn new_customized(
+        dht: Option<String>,
         runtime_path: &Path,
         database_path: &Path,
     ) -> Result<NetspotControlState, String> {
@@ -79,6 +82,16 @@ impl NetspotControlState {
                 }
             }
         };
+
+        // Sending messages to DHT REST API
+        if let Some(api_url) = dht {
+            tokio::spawn(dht_message_sender(
+                api_url,
+                get_ip_addresses()?,
+                messages_tx.subscribe(),
+                RunChecker::new(run_tx.subscribe()),
+            ));
+        }
 
         // Database has worker task for writing messages to the database.
         let database = Database::new(
@@ -129,4 +142,23 @@ impl NetspotControlState {
 
         println!("NetspotControlState shutdown completed.")
     }
+}
+
+fn get_ip_addresses() -> Result<Vec<String>, String> {
+    let mut addresses = Vec::new();
+    let device_list = pcap::Device::list().map_err(|e| e.to_string())?;
+    for device in device_list {
+        for address in device.addresses {
+            let addr = &address.addr;
+            if addr.is_loopback() || addr.is_multicast() || addr.is_unspecified() {
+                // Skipping over these
+                continue;
+            }
+            if address.addr.is_ipv4() || address.addr.is_ipv6() {
+                // These we use
+                addresses.push(addr.to_string());
+            }
+        }
+    }
+    Ok(addresses)
 }

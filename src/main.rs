@@ -48,6 +48,12 @@ struct Cli {
     /// Automatic shutdown after <SECONDS>
     #[arg(long = "shutdown-after")]
     seconds: Option<u64>,
+
+    /// Send alarms to the SIFIS-Home DHT REST interface
+    ///
+    /// The API URL is most likely http://localhost:3000/
+    #[arg(long, value_name = "API URL")]
+    dht: Option<String>,
 }
 
 /// Entry Point for the Server Program
@@ -65,11 +71,11 @@ async fn main() {
 
     // Creating State object for the server
     let state = if cli.db_path.is_none() && cli.runtime_path.is_none() {
-        NetspotControlState::new().await
+        NetspotControlState::new(cli.dht).await
     } else {
         let runtime_path = cli.runtime_path.unwrap_or(PathBuf::from("/tmp"));
         let db_path = cli.db_path.unwrap_or(Path::join(&runtime_path, "test.db"));
-        NetspotControlState::new_customized(&runtime_path, &db_path).await
+        NetspotControlState::new_customized(cli.dht, &runtime_path, &db_path).await
     };
     let state = match state {
         Ok(state) => state,

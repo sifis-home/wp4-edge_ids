@@ -20,7 +20,7 @@ impl TestSetup {
         test_db.push("test.db");
 
         // Creating state object
-        let state = NetspotControlState::new_customized(test_dir.path(), &test_db)
+        let state = NetspotControlState::new_customized(None, test_dir.path(), &test_db)
             .await
             .expect("Valid state object");
 
