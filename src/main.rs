@@ -51,7 +51,7 @@ struct Cli {
 
     /// Send alarms to the SIFIS-Home DHT REST interface
     ///
-    /// The API URL is most likely http://localhost:3000/
+    /// The API URL is most likely http://localhost:3000/pub
     #[arg(long, value_name = "API URL")]
     dht: Option<String>,
 }
